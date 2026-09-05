@@ -54,7 +54,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/web-push": "^3.6.4",
-    "@vercel/node": "^7.0.0",
+    "@vercel/node": "^12.0.0",
     "@vitejs/plugin-react": "^6.0.4",
     "jsdom": "26.1.0",
     "oxlint": "^1.75.0",
