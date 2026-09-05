@@ -1,240 +1,216 @@
+<div align="center">
+
 # XFY
 
-Reproductor de música construido con React + Vite + **TypeScript (strict)**,
-con el catálogo y la búsqueda basados en YouTube Music.
+**Reproductor de música con letras karaoke, cuentas reales, sync entre
+dispositivos y catálogo de YouTube Music.**
+
+Construido con React 19 + Vite + TypeScript estricto, corriendo 100%
+sobre Vercel (frontend + Serverless Functions).
+
+</div>
+
+<!--
+  📸 CAPTURAS — reemplazá estos paths por tus propias imágenes:
+    docs/screenshots/desktop.png  → vista de escritorio
+    docs/screenshots/mobile.png   → vista mobile / PWA instalada
+  Podés armar el collage que quieras; esto es solo un punto de partida
+  con las dos imágenes lado a lado.
+-->
+
+<p align="center">
+  <img src="docs/screenshots/desktop.png" alt="XFY en escritorio" width="70%">
+</p>
+<p align="center">
+  <img src="docs/screenshots/mobile.png" alt="XFY en móvil" width="26%">
+</p>
+
+## Qué es XFY
+
+XFY es un reproductor de música que busca y reproduce desde el catálogo
+de YouTube Music, con letras sincronizadas palabra a palabra estilo
+karaoke, cuentas de usuario reales (con passkeys y 2FA), sincronización
+tipo "Spotify Connect" entre tus dispositivos, y funciones sociales como
+Wrapped y Blend. Es una PWA instalable, pensada para sonar tan bien en
+el celular como en la compu.
+
+## Características
+
+- 🔎 **Catálogo y búsqueda** completos de YouTube Music, con portadas,
+  biografías de artista y discografías enriquecidas desde iTunes,
+  TheAudioDB, MusicBrainz, Deezer y Wikipedia.
+- 🎤 **Letras karaoke palabra a palabra** (LRCLIB + Enhanced LRC), con
+  fallback a las letras nativas de YouTube Music.
+- 👤 **Cuentas reales**: registro con email/contraseña, **passkeys
+  (WebAuthn)** y **2FA por TOTP** con códigos de respaldo, además de
+  login con **Spotify** (Authorization Code + PKCE) para importar tus
+  playlists y Me Gusta.
+- 📱 **Sync entre dispositivos** al estilo "Spotify Connect": transferí
+  la reproducción de tu compu al celular (y viceversa) en tiempo real
+  vía Ably, con long-poll como respaldo si el realtime no está
+  disponible.
+- 🎧 **Reproducción sin cortes**: arranque instantáneo por IFrame de
+  YouTube y, en paralelo, extracción y cacheo del audio en un store
+  propio de 3 niveles (Cloudflare R2 → Vercel Blob → Backblaze B2) para
+  que la próxima escucha sea directa, sin depender de YouTube.
+- 🗣️ **AI DJ**: comentarios cortos entre canciones basados en tus
+  hábitos de escucha, leídos con la Web Speech API del navegador — sin
+  claves ni backend extra.
+- 📊 **Wrapped y Blend**: tu resumen de escucha (estilo "Spotify
+  Wrapped") y comparación de gustos con otro usuario vía un código para
+  compartir.
+- 🔔 **Notificaciones de lanzamientos**: avisa cuando tus artistas más
+  escuchados sacan algo nuevo, incluso con la app cerrada (Web Push).
+- 📲 **PWA completa**: instalable, Share Target, File Handling, Badging
+  API, Wake Lock en modo cinema/karaoke y Periodic Background Sync.
 
 ## Stack
 
-- **Vite + React 19 + TypeScript strict** — build estático, sin servidor propio para el frontend. `npm run typecheck` (doble pasada: app + node) en CI.
-- **Zustand** (`*/store/`) — estado global: sesión, reproductor, portadas.
+- **Vite + React 19 + TypeScript strict** (`noUncheckedIndexedAccess`,
+  `verbatimModuleSyntax`) — todo el proyecto, frontend y funciones,
+  100% TypeScript.
+- **Zustand** — estado global (sesión, reproductor, portadas, dispositivos).
 - **Motion** (`motion/react`) — animaciones de UI.
 - **Base UI** (`@base-ui/react`) — componentes accesibles sin estilos que pelear.
-- **Sonner** — notificaciones.
-- **Lucide / Morphicons / AnimateIcons** — iconografía.
-- **React Router 7** (`HashRouter`) — enrutamiento de páginas.
-- **hls.js** — streams HLS (Audius / Motion Art).
-- **oxlint** — linting. **Vitest + Testing Library** — tests.
-- **@use-gesture/react** — gestos de la tab bar (drag-to-select).
+- **React Router 7** (`HashRouter`) · **Sonner** (notificaciones) ·
+  **Lucide / Morphicons / AnimateIcons** (iconografía).
+- **hls.js** — streams HLS (Audius / Motion Art / audio remuxeado).
+- **Neon (Postgres)** — cuentas, sesiones, playlists, dispositivos.
+- **Ably** — transporte realtime para el sync entre dispositivos.
+- **Cloudflare R2 / Vercel Blob / Backblaze B2** — caché de audio en 3 niveles.
+- **@simplewebauthn** — passkeys. **web-push** — notificaciones push (VAPID).
+- **oxlint** (linting) · **Vitest + Testing Library** (tests).
 
-## Estado de la migración TypeScript
+## Arquitectura, en corto
 
-**Migración completa.** Todo el código del proyecto está en TypeScript
-(strict, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`): `src/`,
-las Vercel Functions de `api/` (chequeadas por `tsconfig.node.json`)
-y `vite.config.ts`. Patrones en uso: branded types (`VideoId`,
-`SongKey` en `audioCacheKey.ts`), template literal types para las rutas
-del Blob store, `satisfies` en catálogos, contratos de dominio en
-`src/types/models.ts`. El service worker está en `src/sw.ts` (TypeScript)
-y se compila por `vite-plugin-pwa` con estrategia `injectManifest`;
-el archivo resultante se sirve desde `dist/sw.js`.
-
-## De dónde sale cada cosa
-
-- **Búsqueda y catálogo**: YouTube Music, vía `ytmusic-api` corriendo dentro
-  de una función serverless de Vercel (`api/ytmusic.ts`). En desarrollo,
-  un plugin de `vite.config.ts` ejecuta ESA MISMA Function dentro del
-  server de Vite, así que `vite dev` se comporta igual que producción.
-- **Reproducción**: caché de audio compartida en Vercel Blob, servida por
-  CDN. Al pedir una canción, el frontend (`ytblob.ts`) primero hace HEAD
-  al blob (`yt-audio/{videoId}.m4a|webm`); si ya existe, suena directo
-  por `<audio>` nativo. Si no, arranca de inmediato por el IFrame Player
-  (`YouTubeEngine.tsx`, latencia cero) y dispara en paralelo
-  `POST /api/ytcache`, que extrae el audio (youtubei.js + PO tokens
-  BotGuard, ver `api/_lib/ytcore.ts`) y lo sube al blob en background
-  (`waitUntil`); el frontend hace polling del HEAD y avisa cuando está
-  listo para la próxima escucha. Las pistas externas (Audius) usan
-  hls.js (`AudioEngine.tsx`).
-- **Segundo plano (2026)**: YouTube bloquea su player en background desde
-  el server (ene-2026), así que la ruta IFrame es SOLO arranque visible;
-  el escape real es el blob propio (`<audio>` + MediaSession + Audio
-  Session `playback`). El polling del upgrade y el watchdog de
-  auto-sanación corren en un Web Worker (`workerTicker.ts`) porque los
-  timers de pestaña oculta se recortan a ~1/min; si WebKit deja el
-  `<audio>` zombie (iOS 26 PWA reopen, bug 295518) el elemento se
-  RECREA con el mismo src — cura documentada.
-- **Portadas e info de artista**: iTunes Search API, TheAudioDB,
-  MusicBrainz/CoverArtArchive, Deezer y Wikipedia como fuentes
-  complementarias cuando YouTube Music no trae datos completos
-  (proxies en `vercel.json`, `api/musicbrainz.ts`, `api/imgproxy.ts`;
-  clientes en `src/services/api/`).
-- **Letras**: LRCLIB (`src/features/lyrics/engine/lrclib.ts`), con fallback a
-  las letras propias de YouTube Music. La asignación es tolerante a ruido
-  de títulos ("(Official Video)", "feat. X"…) y rechaza candidatos con
-  duración imposible (>10s de desvío) para no asignarle a una canción la
-  letra de otra versión. El timing palabra-a-palabra sale del **Enhanced
-  LRC** que LRCLIB trae para muchísimos tracks (timestamps por palabra
-  reales, badge "PALABRA A PALABRA"); el resto se estima con un
-  distribuidor silábico (`wordTiming.ts`) — 100% en Vercel + cliente,
-  sin servicios externos ni claves. Todo cacheado durable en IndexedDB.
-- **Video/arte de fondo del reproductor**: portadas animadas estilo
-  Apple Music generadas bajo demanda (`api/motionart.ts`) y cacheadas
-  localmente.
-- **Autenticación y playlists**: 100% locales, en IndexedDB
-  (`src/shared/lib/db.ts`), sin backend de usuarios.
-- **Nuevos lanzamientos**: cada 6 h el cliente revisa iTunes por los
-  artistas que más escuchaste en los últimos 30 días (todo local, ver
-  `src/shared/lib/releaseWatch.ts`) y avisa con notificación del sistema
-  si hay álbum o canción nueva (`src/shared/lib/appNotifications.ts`).
-  Primera vez = solo línea base (cero spam), toggle en Configuración.
-  Las notificaciones locales también cubren eventos como "audio listo
-  para segundo plano" cuando la app está oculta.
-- **Push con la app cerrada**: un cron diario en Vercel (`api/push/cron-release-watch.ts`)
-  consulta iTunes por los artistas vigilados de cada dispositivo suscrito
-  y les envía push vía Web Push (VAPID) aunque la app esté cerrada.
-  La suscripción es opcional, anónima (token por dispositivo) y requiere
-  permiso de notificaciones concedido + PWA instalada (iOS 16.4+).
-- **Wake Lock**: en modo cinema o con letras karaoke sonando, la pantalla
-  se mantiene encendida automáticamente (`useScreenWakeLock.ts`).
+- **Catálogo y búsqueda**: `ytmusic-api` corriendo dentro de una función
+  serverless (`api/ytmusic.ts`). En desarrollo, un plugin de
+  `vite.config.ts` ejecuta esa misma función dentro del server de Vite.
+- **Reproducción**: al pedir una canción, el frontend primero chequea si
+  ya está cacheada (R2 → Blob → B2, en ese orden). Si no, arranca al
+  instante por el IFrame de YouTube (latencia cero) y dispara en
+  paralelo la extracción del audio (`youtubei.js` + PO tokens BotGuard)
+  para subirlo al store en background. Las pistas externas (Audius) usan
+  hls.js.
+- **Cuentas y seguridad**: Postgres (Neon) con contraseñas PBKDF2,
+  passkeys vía WebAuthn y 2FA por TOTP con códigos de respaldo
+  hasheados. Sesiones y rate limiting en la misma base.
+- **Sync entre dispositivos**: cada dispositivo se conecta directo a
+  Ably (WebSocket) para recibir comandos en milisegundos; un long-poll
+  contra la base (hasta 25s por request) hace de respaldo permanente —
+  incluida la sincronización de nickname/avatar/tema entre
+  dispositivos, que Ably no cubre.
+- **Letras**: LRCLIB con fallback a YouTube Music. Tolerante a ruido en
+  títulos ("(Official Video)", "feat. X"…) y descarta candidatos con
+  duración incompatible. El timing palabra-a-palabra sale del Enhanced
+  LRC cuando existe; si no, se estima con un distribuidor silábico.
+- **Nuevos lanzamientos**: cada 6h el cliente revisa iTunes por tus
+  artistas más escuchados; un cron diario en Vercel manda Web Push
+  aunque la app esté cerrada.
 
 ## Estructura del proyecto
 
 ```
-api/                  Funciones serverless de Vercel (TypeScript)
-  ytmusic.ts            Búsqueda/catálogo/letras de YT Music (ytmusic-api)
-  ytcache.ts            Extracción de audio de YT + upload a Vercel Blob
-                          (caché compartido, dedupe inflight, waitUntil)
-  ytaudio.ts            Extracción de audio para el player (hls.js)
-  ytstream.ts           Streaming de audio HLS
-  ytaudit.ts            Auditoría de integridad del caché de audio (manual,
-                          ADMIN_TOKEN) + eviction LRU vía Vercel Cron cada
-                          3 días (mismo archivo, fusionados por el tope de
-                          12 Serverless Functions del plan Hobby)
-  push.ts               Endpoint unificado push (subscribe/state/unsubscribe)
-  push/cron-release-watch.ts  Cron diario de push de lanzamientos
-  _lib/ytcore.ts        Núcleo compartido: sesión Innertube, BotGuard,
-                          minteo de PO tokens, extracción de audio
-  _lib/ytstore.ts       Caché de audio en Vercel Blob (índice, metadata, LRU)
-  _lib/remux.ts         Reempaquetado MP4/WebM → contenedor progresivo
-  motionart.ts          Portadas animadas (HLS) estilo Apple Music
-  imgproxy.ts           Proxy de imágenes externas (CORS/mixed-content)
-  musicbrainz.ts        Proxy MusicBrainz (necesita User-Agent propio)
-  cron/                 Crons programados (auditoría + push de lanzamientos)
-public/                Assets estáticos e íconos PWA
+api/                      Funciones serverless de Vercel (TypeScript)
+  ytmusic.ts                Búsqueda/catálogo/letras (ytmusic-api)
+  ytcache.ts / ytaudio.ts   Extracción y cacheo de audio de YouTube
+  ytstream.ts / ytaudit.ts  Streaming HLS / auditoría + eviction LRU
+  spotify.ts                Login de Spotify (Authorization Code + PKCE)
+  push.ts                   Suscripción y estado de Web Push
+  push/cron-release-watch.ts  Cron diario: push de lanzamientos nuevos
+  motionart.ts               Portadas animadas estilo Apple Music
+  proxyutils.ts               Proxies de imágenes/APIs externas (CORS)
+  cron/r2-lifecycle.ts        Degrada audio viejo: R2 → B2 cada 6h
+  _lib/
+    accountAuth.ts / accountDb.ts / accountResources.ts   Cuentas
+    webauthn.ts / totp.ts        Passkeys y 2FA
+    realtime.ts                  Tokens y publish de Ably
+    tieredAudioStore.ts / r2Ledger.ts / s3Compat.ts   Store de audio en 3 niveles
+    ytcore.ts / ytstore.ts       Núcleo de extracción y caché de YouTube
+    remux.ts / tagAudio.ts       Reempaquetado y metadata del audio
+    rateLimit.ts / ssrfGuard.ts  Protecciones de las funciones
+public/                    Assets estáticos e íconos PWA
 src/
-  main.tsx / App.tsx    Arranque, rutas y engines globales
-  sw.ts                 Service worker (injectManifest, precache + push/periodicSync)
-  features/             Un dominio por carpeta (components/, store/, lib/)
-    auth/                 Sesión local (login, restore, preferencias)
-    catalog/              HomePage, DiscoverPage, búsqueda
-    player/               Reproducción: engines, cola, MiniPlayerBar, MediaSession
-    lyrics/               Letras sincronizadas por palabra (motor karaoke)
-    artists/              Páginas de artista y álbum, discografías
-    playlists/            Playlists locales + importación desde YT Music
-    settings/             Temas, almacenamiento y caché
-  services/api/         Un cliente por fuente externa (ytmusic, audius,
-                        itunes, deezer, audiodb, musicbrainz, wikipedia…)
-  shared/
-    components/           UI transversal (Sidebar, MobileTabBar,
-                            ErrorBoundary, PWA, CachedImg…)
-    lib/                  cacheManager (LRU sobre Cache Storage),
-                            db (IndexedDB), requestCache, hooks varios
-                            appBadge.ts, useScreenWakeLock.ts,
-                            pushNotifications.ts, appIntents.ts
-  styles/               Estilos globales
+  main.tsx / App.tsx         Arranque, rutas y engines globales
+  sw.ts                      Service worker (injectManifest, push/sync)
+  features/                  Un dominio por carpeta (components/, store/, lib/)
+    auth/                      Cuentas: login, passkeys, 2FA, migración legacy
+    catalog/                   Home, Discover, búsqueda, recomendaciones
+    player/                    Engines de reproducción, cola, AI DJ, MediaSession
+    lyrics/                    Motor de letras karaoke palabra a palabra
+    artists/                   Páginas de artista y álbum, discografías
+    playlists/                 Playlists + importación desde YT Music/Spotify
+    devices/                   Sync tipo "Spotify Connect" (Ably + long-poll)
+    wrapped/                   Wrapped (resumen anual/mensual) y Blend
+    settings/                  Temas, almacenamiento y caché
+  services/api/               Un cliente por fuente externa
+  shared/                     UI transversal, IndexedDB, caché, hooks
+  styles/                     Estilos globales
 ```
 
-Los imports usan aliases absolutos definidos en `vite.config.ts`:
-`@` → `src/`, `@features`, `@shared`, `@services`.
+Aliases de imports (`vite.config.ts`): `@` → `src/`, `@features`,
+`@shared`, `@services`.
 
-## Desplegar en producción
-
-Pensado para **Vercel**.
-
-- **Framework Preset:** Vite
-- **Build Command:** `npm run build`
-- **Output Directory:** `dist`
-- **Install Command:** `npm install`
-
-`vercel.json` define los rewrites hacia iTunes/TheAudioDB/LRCLIB/Deezer/
-MusicBrainz/CoverArtArchive y los límites de duración de las funciones en `api/`.
-`api/ytcache.ts` usa `maxDuration: 300` (el tope real de Hobby con Fluid
-Compute) porque extrae audio + lo descarga + lo sube al blob en una sola
-invocación; con menos, cortaba el job a mitad de camino en frío (ver
-`FUNCTION_INVOCATION_TIMEOUT` en los logs de Runtime si esto vuelve a pasar).
-
-### Variables de entorno
-
-- **Store de Blob conectado** — requisito para el caché de audio
-  (`api/ytcache.ts`). Se conecta desde Storage → `xfy-music-blob` →
-  Projects → Connect to Project (o al crearlo). Por default, Vercel
-  conecta el store vía **OIDC** (inyecta `BLOB_STORE_ID` +
-  `VERCEL_OIDC_TOKEN`, este último rotado automáticamente en cada
-  deploy) — el SDK de `@vercel/blob` los usa solo, sin configurar nada
-  más. Como fallback también podés usar el token estático
-  `BLOB_READ_WRITE_TOKEN` (Advanced Options al conectar, o agregado a
-  mano en Settings → Environment Variables) si preferís no depender de
-  OIDC. Sin ninguna de las dos vías, `/api/ytcache` responde
-  `503 unconfigured` y la app sigue funcionando igual, solo que cada
-  reproducción vuelve a arrancar por el IFrame en vez de servir desde el
-  Blob CDN. El store público usado en este proyecto es `xfy-music-blob`
-  (base URL `https://3xdosg72gxp3tqbf.public.blob.vercel-storage.com`,
-  configurable en el frontend vía `VITE_BLOB_BASE_URL` si se recrea el
-  store con otro ID).
-
-#### Opcionales
-
-- `YTMUSIC_COOKIE` — cookie de una sesión real de YouTube Music, solo si
-  `api/ytmusic.ts` empieza a recibir bloqueos consistentes desde las IPs
-  de Vercel.
-- `YTDL_COOKIE` — cookie para la extracción de audio (`api/_lib/ytcore.ts`).
-  Es el fix definitivo cuando YouTube challengea las IPs de datacenter de
-  Vercel ("Sign in to confirm you're not a bot" → todos los clientes caen a
-  playability LOGIN_REQUIRED). Cómo armarla: en un navegador logueado a
-  YouTube, DevTools → Application → Cookies → `https://www.youtube.com`, y
-  copiar al menos `VISITOR_INFO1_LIVE`, `YSC`, `SID`, `HSID`, `SSID`,
-  `SAPISID` como `"name=value; name=value; ..."`. Setearla en Vercel →
-  Settings → Environment Variables y redeployar. Sin cookie el resolutor
-  igual se defiende (rebuild de sesión + cadena YTMUSIC→MWEB→ANDROID_VR→TV),
-  pero es cat y mouse; con cookie es estable.
-- `YT_AUDIO_CLIENT` — cliente Innertube a usar en la extracción
-  (default `YTMUSIC`, con fallback interno a `TV`).
-- `YT_PROXY_URL` — proxy residencial/móvil (`http://usuario:password@host:puerto`)
-  para el tráfico saliente de `api/_lib/ytcore.ts`. Es la mitigación real
-  contra el bloqueo por REPUTACIÓN DE IP de datacenter (Vercel, Render,
-  AWS...) — un problema distinto al challenge anti-bot que resuelven
-  `YTDL_COOKIE`/PO Tokens: ese bloqueo actúa antes de mirar la sesión, así
-  que ninguna cookie lo esquiva. Sin esta var, el resolutor sigue
-  funcionando exactamente igual que hoy (no-op). Requiere contratar un
-  proveedor de proxies residenciales (Webshare, Bright Data, IPRoyal,
-  Smartproxy...); no hay forma de conseguir esto gratis de forma confiable.
-
-#### Push (opcional)
-
-- `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` — par de claves VAPID para Web Push
-  (generar con `npx web-push generate-vapid-keys`; la pública va en
-  `VITE_VAPID_PUBLIC_KEY` para el cliente).
-- `CRON_SECRET` — opcional, Bearer token para disparar el cron de push
-  manualmente (`Authorization: Bearer <CRON_SECRET>`).
-
-## Caché inteligente (`src/shared/lib/cacheManager.ts`)
-
-- **Audio de YouTube**: no pasa por acá — vive en el Blob CDN compartido
-  (`api/ytcache.ts` / `ytblob.ts`), ver sección de Reproducción arriba.
-- **Audio externo (Audius) y otros assets**: se guardan en Cache Storage
-  API la primera vez que se reproducen/muestran. Cupo fijo (500 MB) con
-  borrado LRU automático al superarlo.
-- **Metadatos** (portadas, bios, letras, discografías): cachés pequeños en
-  `localStorage` con TTL de horas a días según la fuente.
-- Todo es visible y se puede vaciar manualmente desde
-  Configuración → Almacenamiento y caché.
-
-## PWA — características extra
-
-- **Install prompt** nativo + botón "Reintentar" en error boundary.
-- **Share Target**: compartí un link de YouTube desde cualquier app → XFY lo resuelve y reproduce.
-- **File Handling**: abrís un `.mp3/.m4a/.ogg/.flac` "con XFY" → suena directo.
-- **Periodic Background Sync** (Chromium, PWA instalada): refresca el release watch cada ~12 h.
-- **Badging API**: puntito en el ícono cuando hay lanzamientos sin ver; se limpia al abrir.
-- **Wake Lock**: pantalla encendida en modo cinema / letras karaoke.
-- **Prompt de actualización**: toast "Hay una versión nueva — Recargar" (SKIP_WAITING manual).
-- **Eviction LRU del caché de audio**: cron de auditoría (cada 3 días) desaloja audios más viejos si pasa de 850 MB, baja a 700 MB; costo ≈ 1 `list` + `del` justos; índices huérfanos se auto-reparan.
-
-## Comandos
+## Desarrollo local
 
 ```bash
 npm install
-npm run dev      # desarrollo (plugin interno replica la API de YT Music)
-npm run test     # vitest
-npm run lint     # oxlint
-npm run build    # build de producción → dist/
+npm run dev        # plugin interno replica la API de YT Music
+npm run test        # vitest
+npm run lint         # oxlint
+npm run typecheck    # tsc (app + funciones), doble pasada
+npm run build        # build de producción → dist/
 ```
+
+## Desplegar en producción
+
+Pensado para **Vercel** (Framework Preset: Vite · Build: `npm run build`
+· Output: `dist`).
+
+### Variables de entorno
+
+| Variable | Para qué |
+|---|---|
+| `DATABASE_URL` | Postgres (Neon) — cuentas, sesiones, playlists, dispositivos |
+| `WEBAUTHN_RP_ID` / `WEBAUTHN_ORIGIN` | Passkeys (dominio y origen esperado) |
+| `BLOB_READ_WRITE_TOKEN` o conexión OIDC | Caché de audio nivel legacy (Vercel Blob) |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_BUCKET` / `R2_PUBLIC_BASE_URL` | Caché de audio nivel HOT (Cloudflare R2) |
+| `B2_KEY_ID` / `B2_APPLICATION_KEY` / `B2_ENDPOINT` / `B2_BUCKET` / `B2_PUBLIC_BASE_URL` | Caché de audio nivel COLD (Backblaze B2) |
+| `VITE_R2_BASE_URL` / `VITE_BLOB_BASE_URL` / `VITE_B2_BASE_URL` | Bases públicas de lectura para el frontend (una por nivel) |
+| `SPOTIFY_CLIENT_ID` / `SPOTIFY_CLIENT_SECRET` / `VITE_SPOTIFY_CLIENT_ID` | Login real de Spotify |
+| `ABLY_API_KEY` | Sync realtime entre dispositivos (opcional, cae a long-poll sin ella) |
+| `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VITE_VAPID_PUBLIC_KEY` | Web Push (generar con `npx web-push generate-vapid-keys`) |
+| `ADMIN_TOKEN` | Autoriza la auditoría manual del caché de audio |
+| `CRON_SECRET` | Protege el disparo manual de los crons |
+
+Todas las variables de audio (R2/Blob/B2) son opcionales de forma
+independiente: sin ninguna configurada, cada reproducción vuelve a
+arrancar por el IFrame de YouTube en vez de servir desde caché — la app
+sigue funcionando igual, solo sin ese acelerador.
+
+<details>
+<summary>Opcionales de scraping de YouTube (solo si empieza a bloquear)</summary>
+
+- `YTMUSIC_COOKIE` / `YTDL_COOKIE` — cookies de una sesión real de
+  YouTube, para cuando Vercel empieza a recibir bloqueos consistentes.
+- `YT_AUDIO_CLIENT` — cliente Innertube a usar (default `YTMUSIC`).
+- `YT_PROXY_URL` — proxy residencial/móvil contra el bloqueo por
+  reputación de IP de datacenter.
+- `YT_DISABLE_EXTERNAL_FALLBACK` — desactiva el fallback a fuentes
+  externas si YouTube falla.
+
+</details>
+
+## Contribuir
+
+Las contribuciones son bienvenidas — abrí un issue para discutir el
+cambio antes de un PR grande, y corré `npm run lint` y
+`npm run typecheck` antes de mandarlo.
+
+## Licencia
+
+Este proyecto está bajo la **GNU Affero General Public License v3.0
+(AGPL-3.0)**. En corto: podés usar, modificar y aportar cambios
+libremente, pero si corrés una versión modificada como servicio público,
+tenés que compartir el código de esa versión con tus usuarios. Ver el
+archivo [`LICENSE`](./LICENSE) para el texto completo.
