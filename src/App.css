@@ -1,0 +1,60 @@
+/* Capa del gesto de "volver" arrastrando desde el borde — ver
+   useEdgeSwipeBack.ts. swipe-back-layer es la página actual, que sigue al
+   dedo en vivo vía su motion value `x`; swipe-back-edge-scrim es lo que
+   queda "revelado" a la izquierda mientras se arrastra, simulando que hay
+   otra pantalla detrás sin tener que montarla de verdad. */
+
+.swipe-back-layer {
+  min-height: 100%;
+  will-change: transform;
+  /* Sombra sutil en el canto izquierdo de la página que se arrastra — es
+     la misma "costura entre capas" que separa las pantallas apiladas en
+     iOS; sin ella el slide se siente como un desplazamiento plano en vez
+     de una página físicamente encima de otra. */
+  box-shadow: -24px 0 32px -12px rgba(0, 0, 0, 0.35);
+}
+
+.swipe-back-edge-scrim {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 5;
+  max-width: 100vw;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--bg) 88%, black) 0%,
+    color-mix(in srgb, var(--bg) 94%, transparent) 82%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Franja arrastrable del titlebar nativo — solo existe cuando la PWA
+   corre instalada en escritorio con Window Controls Overlay (ver
+   useWindowControlsOverlay.ts, que agrega .pwa-wco a <html> y calcula
+   --wco-x/--wco-width/--wco-height con la geometría real que reporta el
+   navegador). En cualquier otro modo (pestaña normal, móvil) no ocupa
+   layout ni pinta nada: la ventana ya tiene su barra nativa de sobra. */
+.app-titlebar-drag {
+  display: none;
+}
+
+html.pwa-wco .app-titlebar-drag {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: var(--wco-x, 0px);
+  width: var(--wco-width, 100%);
+  height: var(--wco-height, 33px);
+  /* Región arrastrable estándar de la spec de Window Controls Overlay —
+     mueve la ventana igual que el titlebar nativo de cualquier app de
+     escritorio (Spotify, VS Code). Sin prefijo: así lo expone Chromium
+     hoy para apps instaladas. */
+  app-region: drag;
+  -webkit-app-region: drag;
+  /* Por encima del Sidebar (z:15) y el dock de FloatingHeader (z:20):
+     ambos ya se corren hacia abajo en este modo (ver Sidebar.css y
+     FloatingHeader.css), así que esta franja no les tapa ningún botón —
+     solo cubre el hueco vacío que antes no tenía dueño. */
+  z-index: 30;
+  background: var(--bg);
+}

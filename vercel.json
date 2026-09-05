@@ -1,0 +1,121 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "npm install",
+  "env": {
+    "NODE_OPTIONS": "--no-deprecation"
+  },
+  "rewrites": [
+    {
+      "source": "/api/itunes/:path*",
+      "destination": "https://itunes.apple.com/:path*"
+    },
+    {
+      "source": "/api/apple-charts/:path*",
+      "destination": "https://rss.marketingtools.apple.com/:path*"
+    },
+    {
+      "source": "/api/audiodb/:path*",
+      "destination": "https://www.theaudiodb.com/api/v1/json/123/:path*"
+    },
+    {
+      "source": "/api/lrclib/:path*",
+      "destination": "https://lrclib.net/api/:path*"
+    },
+    {
+      "source": "/api/deezer/:path*",
+      "destination": "https://api.deezer.com/:path*"
+    },
+    {
+      "source": "/api/imgproxy",
+      "destination": "/api/proxyutils?kind=img"
+    },
+    {
+      "source": "/api/musicbrainz",
+      "destination": "/api/proxyutils?kind=musicbrainz"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/ytaudit",
+      "schedule": "0 4 */3 * *"
+    },
+    {
+      "path": "/api/cron/r2-lifecycle",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/push/cron-release-watch",
+      "schedule": "30 13 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "geolocation=(), camera=(), microphone=(), payment=(), usb=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
+  "functions": {
+    "api/ytmusic.ts": {
+      "maxDuration": 30,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/ytcache.ts": {
+      "maxDuration": 300,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/ytaudit.ts": {
+      "maxDuration": 300,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/cron/r2-lifecycle.ts": {
+      "maxDuration": 300
+    },
+    "api/push/cron-release-watch.ts": {
+      "maxDuration": 300
+    },
+    "api/motionart.ts": {
+      "maxDuration": 20
+    },
+    "api/push.ts": {
+      "maxDuration": 30,
+      "includeFiles": "api/_lib/**"
+    },
+    "api/proxyutils.ts": {
+      "maxDuration": 15
+    },
+    "api/ytaudio.ts": {
+      "includeFiles": "api/_lib/**"
+    },
+    "api/ytstream.ts": {
+      "includeFiles": "api/_lib/**"
+    }
+  }
+}

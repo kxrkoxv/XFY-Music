@@ -1,0 +1,750 @@
+/* ============================================================
+   Spicy Lyrics
+   Karaoke-style word-by-word animation and dynamic background.
+   ============================================================ */
+
+/* Adaptive Theme Colors */
+@property --accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #8b5cf6;
+}
+@property --accent-strong {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #a78bfa;
+}
+@property --accent-glow {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(139, 92, 246, 0.55);
+}
+@property --accent-dim {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: rgba(139, 92, 246, 0.16);
+}
+/* Registro de las props que el motor escribe frame a frame sobre el
+   <span> exterior: al quedar tipadas, `transition` puede INTERPOLARLAS y
+   el degradado de relleno pasa suavemente entre ticks en vez de saltar
+   (se nota sobre todo tras un seek o al volver a una pestaña en segundo
+   plano). inherits:true OBLIGATORIO: el valor se escribe en .karaoke-word
+   y lo lee su hijo .karaoke-word-fill — sin herencia, el degradado se
+   rompería (quedaría clavado en el initial-value). */
+@property --word-fill {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+@property --word-glow {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+.player-page {
+  transition:
+    --accent 1.2s ease-out,
+    --accent-strong 1.2s ease-out,
+    --accent-glow 1.2s ease-out,
+    --accent-dim 1.2s ease-out;
+}
+
+.lyrics-line--karaoke {
+  /* Override line-level gradient when karaoke is active */
+  background-image: none;
+  color: transparent;
+}
+
+.karaoke-word {
+  display: inline-block;
+  /* --pop-y/--pop-s amplifican el pop del motor SIN tocar la física:
+     valen 1 por defecto (móvil = comportamiento original) y suben en PC
+     (.lyrics-panel--desktop) para que la variante desktop se sienta más
+     teatral, como Spicy Lyrics en Spicetify. */
+  --pop-y: 1;
+  --pop-s: 1;
+  transform: translateY(calc(var(--word-y, 0%) * var(--pop-y)))
+    scale(calc(1 + ((var(--word-scale, 1) - 1) * var(--pop-s))));
+  transform-origin: center bottom;
+  /* Hardware acceleration and stacking context isolation */
+  will-change: transform;
+  isolation: isolate;
+
+  /* Smooth transition for resting states — curva "quint-out" larga para que
+     el asentamiento al estado de reposo se sienta con inercia, no cortado.
+     --word-fill se interpola acá porque es ESTE elemento quien la escribe
+     (inline, frame a frame); el hijo hereda el valor ya interpolado. */
+  transition:
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
+    --word-fill 90ms linear;
+}
+
+/* Cascada de entrada: cuando una línea se vuelve activa, sus palabras
+   aparecen escalonadas (delay proporcional a --wi, escrito desde
+   KaraokeWords) deslizándose desde abajo. Se animan `opacity` y `translate`
+   (propiedad individual) para NO pisar el `transform` que controla el
+   resorte del motor — ambas capas se componen. Como las palabras solo se
+   montan mientras la línea está activa, la cascada se repite sola en cada
+   activación sin JS extra.
+   El delay tiene tope (420ms): en líneas largas la cola entra casi junto
+   con el canto en vez de esperar eternamente. */
+@keyframes karaoke-word-in {
+  from {
+    opacity: 0;
+    translate: 0 0.45em;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.lyrics-line--karaoke .karaoke-word {
+  animation: karaoke-word-in 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation-delay: min(calc(var(--wi, 0) * 26ms), 420ms);
+}
+
+/* Palabra cantando AHORA: brillo sutil extra sobre su degradado — feedback
+   inmediato que complementa el glow del resorte (solo hay UNA a la vez). */
+.karaoke-word.word-active .karaoke-word-fill {
+  filter: brightness(1.18);
+}
+
+/* Inner gradient span isolated from transformations */
+.karaoke-word-fill {
+  display: inline-block;
+  background-image: linear-gradient(
+    90deg,
+    var(--text-primary) var(--word-fill, 0%),
+    var(--text-tertiary) var(--word-fill, 0%)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  text-shadow: 0 0 calc(var(--word-glow, 0) * 22px) var(--accent-glow);
+  transition:
+    text-shadow var(--dur-sm) var(--ease-out),
+    filter 150ms var(--ease-out),
+    --word-fill 90ms linear;
+}
+
+.karaoke-word.word-sung .karaoke-word-fill {
+  --word-fill: 100%;
+}
+
+/* --- Énfasis letra por letra (notas sostenidas) ---
+   Portado del concepto de Emphasize.ts: cuando una palabra dura lo
+   suficiente (ver letterEmphasis.js), se parte en letras individuales,
+   cada una con su propio --word-fill/--word-scale/--word-glow. El
+   .letterGroup solo agrupa visualmente (display inline, sin display:flex,
+   para no forzar salto de línea distinto al texto normal); cada .letter
+   es su propio .karaoke-word y anima igual que una palabra suelta. */
+.karaoke-word.letterGroup {
+  display: inline;
+  transform: none;
+  transition: none;
+  will-change: auto;
+}
+
+.karaoke-word.letter {
+  /* Ligeramente más chico que el pop de palabra completa: muchas letras
+     seguidas "saltando" fuerte se ve nervioso en vez de fluido. Mismos
+     multiplicadores --pop-* que la palabra, atenuados (0.6 / 0.7). */
+  transform: translateY(calc(var(--word-y, 0%) * var(--pop-y, 1) * 0.6))
+    scale(calc(1 + ((var(--word-scale, 1) - 1) * var(--pop-s, 1) * 0.7)));
+}
+
+/* --- Soporte RTL (árabe, hebreo, persa) ---
+   Portado de isRtl.ts: la línea completa se marca rtl (ver dir="rtl" en
+   LyricLine.jsx) y el degradé de relleno del karaoke se invierte, porque
+   el texto "avanza" visualmente de derecha a izquierda. */
+.lyrics-line.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.lyrics-line.rtl .karaoke-word-fill {
+  background-image: linear-gradient(
+    270deg,
+    var(--text-primary) var(--word-fill, 0%),
+    var(--text-tertiary) var(--word-fill, 0%)
+  );
+}
+
+/* --- Coros de fondo (ttm:role="x-bg") ---
+   Solo aparecen cuando la fuente es TTML real (parseTTML.js). Se
+   renderizan más chicos y tenues, debajo de la línea principal, dentro
+   del mismo .lyrics-line-group — así hacen scroll junto con su línea
+   "madre" en vez de contarse como una línea aparte para el auto-scroll. */
+/* El margen vertical entre LÍNEAS vive ACÁ (a nivel de grupo) y no en
+   .lyrics-line — a propósito, porque ahí es donde estaba el bug real
+   detrás de "las letras chocan": cuando un grupo tenía coro de fondo,
+   romanización o traducción, esos elementos se renderizan DESPUÉS de
+   .lyrics-line dentro del mismo grupo, con solo un margin-top chico y
+   CERO margin-bottom (ver más abajo). El margen que se le ponía a
+   .lyrics-line solo empujaba a esos hijos hacia ABAJO, y el próximo
+   grupo arrancaba pegado al último hijo sin ningún colchón — invisible
+   con letra simple, pero muy notorio en desktop (texto grande y bold)
+   apenas se prendía traducción/romanización o sonaba un dúo con coro.
+   Poniendo el margen en el CONTENEDOR del grupo, el espacio es siempre
+   el mismo sin importar cuántos hijos tenga adentro. */
+.lyrics-line-group {
+  display: flex;
+  flex-direction: column;
+  margin: 1.15rem 0;
+}
+
+.lyrics-line-bg {
+  margin: 0.15em 0 0;
+  font-size: 0.7em;
+  opacity: 0.65;
+  color: var(--text-secondary);
+}
+
+.lyrics-line-bg .karaoke-word-fill {
+  background-image: linear-gradient(
+    90deg,
+    var(--text-secondary) var(--word-fill, 0%),
+    var(--text-tertiary) var(--word-fill, 0%)
+  );
+}
+
+/* --- Traducción (translate.ts / MyMemory) ---
+   Línea chica y tenue debajo del original, mismo lenguaje visual que el
+   coro de fondo pero en cursiva para diferenciarla de una segunda voz. */
+.lyrics-line-translation {
+  margin: 0.15em 0 0;
+  font-size: 0.68em;
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+/* --- Romanización (romanize.ts) ---
+   Va ENTRE el original y la traducción (orden de lectura: texto original
+   → cómo se pronuncia → qué significa). Sin cursiva, para no confundirla
+   visualmente con la traducción cuando están las dos prendidas a la vez. */
+.lyrics-line-romanization {
+  margin: 0.15em 0 0;
+  font-size: 0.68em;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+/* --- Dúos (ttm:agent alternado → oppositeAligned) ---
+   La línea "opuesta" (la segunda voz de un dúo) se alinea a la derecha,
+   igual que hace Spicy Lyrics real con OppositeAligned. */
+.lyrics-line-group.duet-opposite {
+  align-items: flex-end;
+}
+
+.lyrics-line-group.duet-opposite .lyrics-line,
+.lyrics-line-group.duet-opposite .lyrics-line-bg {
+  text-align: right;
+}
+
+.lyrics-status-hint {
+  display: block;
+  width: fit-content;
+  margin: 0 auto var(--space-md, 12px);
+  padding: 0.3rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-align: center;
+  background: var(--accent-dim, rgba(139, 92, 246, 0.14));
+  border-radius: 999px;
+  opacity: 0.85;
+}
+
+/* Hover en líneas no activas: pequeño feedback de que son clickeables
+   (seek al tocar) sin competir con el foco visual de la línea activa. */
+.lyrics-line:not(.active):hover {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+/* Mientras el usuario scrollea manualmente (rueda/touch), el auto-scroll
+   se pausa (ver useLyricsAutoScroll.js) — acá se le saca el blur/dim de
+   foco a las líneas para que se puedan leer cómodas mientras se navega
+   a mano, en vez de mantenerlas borrosas. Cumple el mismo rol que la
+   clase .HideLineBlur del Spicy Lyrics original. El !important es
+   necesario porque motion/react pisa filter/opacity/scale por inline
+   style — una regla !important en la hoja de estilos sí les gana. */
+.lyrics-panel.lyrics-user-scrolling .lyrics-line,
+.lyrics-panel.lyrics-user-scrolling .lyrics-line-bg {
+  filter: none !important;
+  opacity: 0.85 !important;
+  scale: 1 !important;
+}
+
+.lyrics-panel.lyrics-user-scrolling .lyrics-line.active {
+  opacity: 1 !important;
+}
+
+/* --- GlassyFlow: cascada de resortes por línea ---
+   Portado de better-lyrics-glassy/public/glassyflow.js: al cambiar la
+   línea activa, cada línea visible recibe un pequeño empujón vertical
+   escalonado por su distancia a la nueva activa (--glassy-y, ver
+   useGlassyStagger.js) y lo absorbe con física de resortes real — el
+   efecto "ola" que fluye hacia la línea activa en vez de saltar todo junto
+   y en bloque. Se suma COMO CAPA sobre el scroll del contenedor, que sigue
+   centrando la línea activa (scrollIntoCenterView) — no lo reemplaza. */
+.lyrics-line {
+  transform: translateY(var(--glassy-y, 0px));
+}
+
+/* --- Botón "Reanudar auto-scroll" ---
+   Portado de better-lyrics-glassy (#autoscroll-resume-button): al detectar
+   scroll manual, el auto-scroll se pausa por más tiempo y de forma más
+   deliberada que el cooldown corto de Spicy Lyrics (ver
+   USER_SCROLL_PAUSE_* en useLyricsAutoScroll.js), y aparece este botón
+   flotante glass para retomar antes de que se cumpla el timeout. */
+.lyrics-panel {
+  position: relative;
+}
+
+.lyrics-resume-btn {
+  position: sticky;
+  top: 0.4rem;
+  z-index: 5;
+  display: block;
+  width: fit-content;
+  margin: 0 auto 0.6rem;
+  padding: 0.5rem 1.1rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  user-select: none;
+  opacity: 0;
+  transform: translateY(-0.8rem);
+  pointer-events: none;
+  transition:
+    opacity 0.15s linear 0.05s,
+    transform 0.2s cubic-bezier(0.5, 1, 0.89, 1),
+    background 0.2s var(--ease-out, ease-out);
+}
+
+.lyrics-resume-btn.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.lyrics-resume-btn:hover {
+  background: var(--accent-dim, rgba(139, 92, 246, 0.22));
+  border-color: var(--accent-glow, rgba(139, 92, 246, 0.45));
+}
+
+.lyrics-resume-btn:focus-visible {
+  outline: 1px solid var(--accent-strong, #a78bfa);
+  outline-offset: 2px;
+}
+
+/* --- Loading / Empty: fondo compartido ---
+   Portada de la canción difuminada a todo el panel (mismo lenguaje que
+   el fondo dinámico del reproductor) en vez del thumbnail chico suelto
+   que había antes — y sirve de fondo tanto para el shimmer de carga
+   como para el estado sin letras. */
+.lyrics-panel.lyrics-panel-empty {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: 240px;
+  padding: 2rem;
+  margin-top: 0;
+  text-align: center;
+  overflow: hidden;
+  border-radius: var(--radius-lg, 18px);
+  isolation: isolate;
+  animation: lyrics-empty-fade-in 450ms var(--ease-out, ease-out);
+}
+
+.lyrics-empty-bg {
+  position: absolute;
+  inset: -12%;
+  width: 124%;
+  height: 124%;
+  object-fit: cover;
+  filter: blur(42px) saturate(150%) brightness(0.55);
+  transform: scale(1.06);
+  z-index: -2;
+  opacity: 0.9;
+}
+
+.lyrics-empty-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 38%, rgba(10, 10, 14, 0.35), rgba(8, 8, 11, 0.78) 78%);
+  z-index: -1;
+}
+
+@keyframes lyrics-empty-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Loading State: Animated Skeleton --- */
+.lyrics-loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.lyrics-skeleton-line {
+  width: 100%;
+  height: 1.4rem;
+  border-radius: 99px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 25%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.08) 75%
+  );
+  background-size: 200% 100%;
+  animation: lyrics-shimmer 1.5s infinite linear;
+}
+
+@keyframes lyrics-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* --- Empty State: sin letras encontradas --- */
+.lyrics-empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.lyrics-empty-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent-dim, rgba(139, 92, 246, 0.16));
+  color: var(--accent-strong, #a78bfa);
+  margin-bottom: 0.2rem;
+}
+
+/* Anillo respirando alrededor del ícono — sensación de "escuchando",
+   igual de sutil que los BreakDots de los silencios instrumentales. */
+.lyrics-empty-icon::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-dim, rgba(139, 92, 246, 0.3));
+  animation: lyrics-empty-ring-breathe 2.6s var(--ease-in-out, ease-in-out) infinite;
+}
+
+@keyframes lyrics-empty-ring-breathe {
+  0%, 100% {
+    transform: scale(0.92);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.1;
+  }
+}
+
+.lyrics-empty-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lyrics-empty-subtext {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  max-width: 260px;
+  line-height: 1.45;
+}
+
+/* --- Plain text mode: Fallback styles --- */
+.lyrics-panel--plain .lyrics-line {
+  /* Increased line spacing for readability */
+  margin-bottom: 0.1em;
+}
+
+/* Prominent active state for plain text mode */
+.lyrics-panel--plain .lyrics-line.active p,
+.lyrics-panel--plain .lyrics-line.active {
+  text-shadow: 0 0 40px var(--accent-glow, rgba(139, 92, 246, 0.4));
+}
+
+/* --- Dynamic Background --- */
+.spicy-dynamic-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity var(--dur-lg) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spicy-dynamic-bg {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Badge de calidad de la letra — atribución estilo Apple Music.
+   Flota sobre la esquina superior derecha del panel, vidrio
+   chico con el acento del tema; en modo aproximado baja a neutro
+   para que se LEA la diferencia sin gritar.
+   ============================================================ */
+.lyrics-panel-toolbar {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lyrics-source-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--accent-strong, var(--text-primary));
+  background: var(--glass-bg, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.85;
+}
+
+.lyrics-source-badge.is-approx {
+  color: var(--text-tertiary);
+}
+
+/* Toggle de traducción: mismo vidrio que el badge de calidad, pero
+   clickeable — se distingue por el color de acento cuando está activo. */
+.lyrics-translate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--text-tertiary);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+  border-radius: 999px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: pointer;
+  transition:
+    color 0.15s var(--ease-out, ease-out),
+    background 0.15s var(--ease-out, ease-out),
+    border-color 0.15s var(--ease-out, ease-out);
+}
+
+.lyrics-translate-btn:hover {
+  color: var(--text-primary);
+}
+
+.lyrics-translate-btn.active {
+  color: var(--accent-strong, #a78bfa);
+  background: var(--accent-dim, rgba(139, 92, 246, 0.18));
+  border-color: var(--accent-glow, rgba(139, 92, 246, 0.4));
+}
+
+.lyrics-translate-btn:focus-visible {
+  outline: 1px solid var(--accent-strong, #a78bfa);
+  outline-offset: 2px;
+}
+
+/* Estado instrumental / vacío: el ícono respira suave para que la
+   pantalla no se sienta muerta — decoración pura, desactivada con
+   reduced-motion como todo lo demás del engine. */
+@keyframes lyrics-empty-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+.lyrics-panel-empty .lyrics-empty-icon {
+  animation: lyrics-empty-breathe 3.2s var(--ease-out, ease-in-out) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrics-panel-empty .lyrics-empty-icon {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   VARIANTE DESKTOP (.lyrics-panel--desktop) — el "modo PC" claramente
+   distinto, inspirado en Spicy Lyrics corriendo en Spicetify:
+   tipografía grande y pesada alineada a la IZQUIERDA (en móvil sigue
+   centrada), escalera sutil de indentación por distancia a la línea
+   activa, pops de palabra amplificados (--pop-*), glow más fuerte en la
+   activa, fade de bordes más profundo y feedback de hover/presión que en
+   táctil no existe. La clase la pone LyricsPanel solo con hover real +
+   puntero fino (useCanHover), así touch nunca la recibe.
+   ============================================================ */
+.lyrics-panel--desktop {
+  --pop-y: 1.12;
+  --pop-s: 1.16;
+  padding: 1.25rem 2rem 1.25rem 0.9rem;
+  /* Fade de bordes más agresivo: en una ventana más alta y tipografía más
+     grande, entrar/salir "desde la nada" vende mejor la profundidad. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 7%, black 93%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 7%, black 93%, transparent);
+}
+
+/* El colchón real contra el "chocan en PC" vive en el GRUPO (ver el
+   comentario largo sobre .lyrics-line-group más arriba) — acá se sube a
+   algo generoso, inspirado en el ritmo vertical de Apple Music (que deja
+   bastante más aire del que parece a primera vista) Y en Musixmatch/
+   Spicy Lyrics para el tamaño de letra grande de escritorio. Se aplica
+   SIEMPRE al grupo completo, tenga o no coro de fondo/traducción/
+   romanización adentro — por eso ya no puede desaparecer según el
+   contenido de la línea. */
+.lyrics-panel--desktop .lyrics-line-group {
+  margin: 2.1rem 0;
+}
+
+.lyrics-panel--desktop .lyrics-line {
+  font-size: 1.45rem;
+  font-weight: 800;
+  /* 1.3 → 1.42: más aire vertical DENTRO del propio renglón — importante
+     para mayúsculas acentuadas del español (Á, É, Í, Ó, Ú, Ñ) en peso 800,
+     que con line-height ajustado quedan más cerca del renglón de arriba
+     de lo que se ve en el diseño. */
+  line-height: 1.42;
+  text-align: left;
+  /* -0.01em de tracking negativo + peso 800 + tamaño grande es la combo
+     clásica que hace que ciertos pares de letras (rectas contra
+     redondas, tildes contra la siguiente letra) se vean "tocándose" —
+     el otro sentido en que las letras "chocaban". Se afloja a algo
+     casi neutro: sigue leyéndose compacto/editorial, pero ya no pisa
+     el kerning natural de la tipografía. */
+  letter-spacing: -0.003em;
+  text-wrap: balance;
+  /* Escalera de profundidad horizontal: cada paso de distancia a la línea
+     activa indenta un poco más — misma idea que el blur/opacity por
+     distancia del motor, pero en el eje que Spicy Lyrics usa en desktop.
+     Transición suave porque distance cambia en pasos discretos. */
+  margin-left: calc(var(--distance, 0) * 12px);
+  transition:
+    color var(--dur-lg, 400ms) var(--ease-out, ease-out),
+    margin-left 480ms var(--ease-out, ease-out),
+    translate 140ms var(--ease-out, ease-out);
+}
+
+/* Dúos alineados a la derecha: la escalera corre hacia el otro borde. */
+.lyrics-panel--desktop .lyrics-line-group.duet-opposite .lyrics-line {
+  margin-left: 0;
+  margin-right: calc(var(--distance, 0) * 12px);
+}
+
+.lyrics-panel--desktop .lyrics-line.active {
+  text-shadow:
+    0 0 34px var(--accent-glow),
+    0 0 90px var(--accent-dim);
+}
+
+/* Barra de acento junto a la línea activa — mismo lenguaje que el
+   indicador "reproduciendo ahora" de Apple Music/Musixmatch en su vista
+   de letras de escritorio. Sutil a propósito: una línea vertical con el
+   color del tema, no un bloque, para no competir con el propio texto. */
+.lyrics-panel--desktop .lyrics-line-group {
+  position: relative;
+}
+
+.lyrics-panel--desktop .lyrics-line-group::before {
+  content: '';
+  position: absolute;
+  left: -0.65rem;
+  top: 0.2em;
+  bottom: 0.2em;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+  box-shadow: 0 0 12px var(--accent-glow);
+  opacity: 0;
+  transform: scaleY(0.4);
+  transform-origin: center;
+  transition:
+    opacity 260ms var(--ease-out, ease-out),
+    transform 320ms var(--ease-out, ease-out);
+}
+
+.lyrics-panel--desktop .lyrics-line-group.duet-opposite::before {
+  left: auto;
+  right: -0.65rem;
+}
+
+.lyrics-panel--desktop .lyrics-line-group:has(.lyrics-line.active)::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrics-panel--desktop .lyrics-line-group::before {
+    transition: opacity 260ms var(--ease-out, ease-out);
+    transform: none;
+  }
+}
+
+/* Feedback de hover (solo dispositivos con cursor real): la línea se
+   enciende antes de tocarla — affordance de seek que en móvil no aplica. */
+@media (hover: hover) and (pointer: fine) {
+  .lyrics-panel--desktop .lyrics-line:not(.active):hover {
+    color: rgba(255, 255, 255, 0.82);
+    text-shadow: 0 0 26px rgba(255, 255, 255, 0.09);
+  }
+}
+
+/* Presión: hundirse 1px al hacer click (seek). Usa `translate` individual,
+   que motion/react NO escribe inline, así no hay pelea de capas. */
+.lyrics-panel--desktop .lyrics-line:active {
+  translate: 0 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lyrics-line--karaoke .karaoke-word {
+    animation: none;
+  }
+
+  .lyrics-panel--desktop .lyrics-line,
+  .lyrics-panel--desktop .lyrics-line-group.duet-opposite .lyrics-line {
+    margin-left: 0;
+    margin-right: 0;
+    transition: color var(--dur-lg, 400ms) var(--ease-out, ease-out);
+  }
+}

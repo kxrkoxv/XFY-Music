@@ -1,0 +1,19 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    # majors como PRs individuales a propósito: saltar React/Vite de major
+    # no se mezcla con rutinas de mantenimiento.
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

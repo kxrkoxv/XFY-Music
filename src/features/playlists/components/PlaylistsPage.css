@@ -1,0 +1,908 @@
+/* ============================================================
+   PlaylistsPage + PlaylistDetailPage — diseño Spotify/Apple Music
+   ============================================================ */
+
+.playlists-page {
+  min-height: 100dvh;
+  padding: calc(1.5rem + var(--page-top-inset)) clamp(1rem, 3vw, 2.5rem) calc(6rem + env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse 100% 360px at 50% 0%, var(--accent-10), transparent);
+}
+
+@media (min-width: 900px) {
+  .playlists-page {
+    padding-left: calc(240px + clamp(1rem, 3vw, 2.5rem));
+  }
+}
+@media (max-width: 899px) {
+  .playlists-page {
+    padding-bottom: calc(var(--page-bottom-clearance) + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Page header ──────────────────────────────────────────── */
+.pl-page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+.pl-page-title {
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin-top: 0.25rem;
+}
+.pl-page-header > div:first-child {
+  /* Sin esto, un ítem flex nunca se achica más allá de su contenido
+     (min-width:auto por default) — con un título largo, empuja a
+     .pl-page-actions afuera del viewport antes de que llegue a
+     wrappear, causando el corte horizontal de toda la página. */
+  min-width: 0;
+}
+.pl-page-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+  /* Los 3 botones (YT / Spotify / Nueva) con su texto completo no
+     entran en una fila en pantallas angostas — antes se desbordaban
+     en silencio (nada los cortaba ni los bajaba de línea) y corrían
+     TODA la página hacia el costado. Ahora bajan de línea acá adentro,
+     sin arrastrar el resto del layout. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+/* ── Buttons ──────────────────────────────────────────────── */
+.pl-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity var(--dur-sm), transform var(--dur-sm);
+}
+.pl-action-btn--primary {
+  background: var(--accent);
+  border: none;
+  color: #0a0a0f;
+}
+.pl-action-btn--secondary {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-primary);
+}
+.pl-action-btn--secondary:hover { background: rgba(255,255,255,0.12); }
+
+/* ── Create form (inline, animated) ──────────────────────── */
+.pl-create-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  max-width: 480px;
+  overflow: hidden;
+}
+.pl-create-form input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-full);
+  padding: 0.65rem 1rem;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color var(--dur-md);
+}
+.pl-create-form input:focus { border-color: var(--accent); }
+.pl-create-cancel {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--dur-md);
+}
+.pl-create-cancel:hover { background: rgba(255,255,255,0.12); }
+
+@media (max-width: 640px) {
+  /* Por debajo de este ancho, título + 3 botones con texto ya no
+     entran cómodos en una fila aunque wrappeen — se apilan: el título
+     arriba, las acciones abajo en su propia fila de ancho completo. */
+  .pl-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .pl-page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 400px) {
+  /* En los teléfonos más angostos, hasta 2 botones por fila puede
+     quedar justo — se recorta el padding/texto en vez de dejar que
+     un tercer botón se desborde de nuevo. */
+  .pl-action-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.76rem;
+  }
+}
+
+/* ── Playlist grid ────────────────────────────────────────── */
+.pl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.25rem;
+}
+@media (max-width: 480px) {
+  .pl-grid { grid-template-columns: repeat(2, 1fr); gap: 0.85rem; }
+}
+
+/* ── Playlist card ────────────────────────────────────────── */
+.pl-card {
+  text-align: left;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: background var(--dur-md), border-color var(--dur-md);
+}
+.pl-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.1);
+}
+.pl-card-cover {
+  margin-bottom: 0.75rem;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.pl-card-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 0.2rem;
+}
+
+/* ── Playlist cover (single / quad) ─────────────────────── */
+.pl-cover {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+.pl-cover img, .pl-cover .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.pl-cover--empty {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.pl-cover--quad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.pl-cover--quad img, .pl-cover--quad .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+/* ── Empty state ──────────────────────────────────────────── */
+.pl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 4rem 1rem;
+  text-align: center;
+}
+.pl-empty-icon { color: var(--text-tertiary); opacity: 0.4; }
+.pl-empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.pl-empty-sub { font-size: 0.875rem; color: var(--text-tertiary); }
+
+/* ── Import modal ─────────────────────────────────────────── */
+.import-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(6px);
+}
+.import-modal {
+  background: rgba(14, 12, 22, 0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
+  width: 100%;
+  max-width: 520px;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.import-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem 1.25rem 0;
+}
+.import-modal-kicker {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-tertiary);
+  margin-bottom: 0.2rem;
+}
+.import-modal-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.import-modal-close {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--dur-md);
+}
+.import-modal-close:hover { background: rgba(255,255,255,0.14); }
+
+.import-search-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1rem 1.25rem;
+  padding: 0.6rem 0.85rem;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius-full);
+  transition: border-color var(--dur-md);
+}
+.import-search-field:focus-within { border-color: var(--accent-50); }
+.import-search-field svg { color: var(--text-tertiary); flex-shrink: 0; }
+.import-search-field input {
+  flex: 1; background: none; border: none; outline: none;
+  font-size: 0.9rem; color: var(--text-primary);
+}
+.import-search-field input::placeholder { color: var(--text-tertiary); }
+.import-spinner { color: var(--text-tertiary); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.import-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.75rem 1rem;
+}
+.import-hint {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+.import-result {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.5rem;
+  border-radius: var(--radius-md);
+  transition: background var(--dur-sm);
+}
+.import-result:hover { background: rgba(255,255,255,0.05); }
+.import-result { cursor: pointer; }
+.import-result:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.import-result-art {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+}
+.import-result-art img, .import-result-art .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.import-result-play {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity var(--dur-sm);
+}
+.import-result:hover .import-result-play,
+.import-result:focus-visible .import-result-play { opacity: 1; }
+.import-result-info { flex: 1; min-width: 0; }
+.import-result-title {
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.import-result-sub {
+  font-size: 0.74rem;
+  color: var(--text-tertiary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 0.1rem;
+}
+.import-result-btn {
+  display: flex; align-items: center; gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--dur-md);
+  position: relative;
+  z-index: 1;
+}
+.import-result-btn:hover { background: rgba(255,255,255,0.14); }
+.import-result-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Import preview (canciones antes de importar) ────────────── */
+.import-modal--preview { display: flex; flex-direction: column; }
+.import-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.import-preview-back {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.07);
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--dur-md);
+}
+.import-preview-back:hover { background: rgba(255,255,255,0.14); }
+.import-preview-art {
+  width: 46px; height: 46px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+}
+.import-preview-art img, .import-preview-art .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.import-preview-headtext { flex: 1; min-width: 0; }
+.import-preview-headtext .import-modal-title { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.import-preview-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.5rem 0.75rem;
+}
+.import-preview-loading {
+  display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+  padding: 2rem 0;
+}
+.import-preview-songs { display: flex; flex-direction: column; }
+.import-preview-song {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: var(--radius-md);
+  transition: background var(--dur-sm);
+}
+.import-preview-song:hover { background: rgba(255,255,255,0.05); }
+.import-preview-song-num {
+  width: 20px; text-align: center; flex-shrink: 0;
+  font-size: 0.76rem; color: var(--text-tertiary);
+}
+.import-preview-song-art {
+  width: 36px; height: 36px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+.import-preview-song-art img, .import-preview-song-art .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.import-preview-song-info { flex: 1; min-width: 0; }
+.import-preview-song-title {
+  font-size: 0.84rem; font-weight: 600; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.import-preview-song-artist {
+  font-size: 0.74rem; color: var(--text-tertiary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 0.05rem;
+}
+.import-preview-song-dur {
+  font-size: 0.74rem; color: var(--text-tertiary); flex-shrink: 0;
+}
+.import-preview-footer {
+  padding: 0.85rem 1.1rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.import-preview-import-btn { width: 100%; justify-content: center; }
+
+/* ── Spotify: conectar cuenta ─────────────────────────────── */
+.spotify-connect-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.9rem;
+  padding: 0.5rem 1.5rem 1.75rem;
+}
+.spotify-connect-icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(29, 185, 84, 0.14);
+  color: #1DB954;
+}
+.spotify-connect-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 183, 3, 0.12);
+  border: 1px solid rgba(255, 183, 3, 0.3);
+  color: #ffb703;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.spotify-connect-copy {
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text-secondary, var(--text-tertiary));
+  max-width: 360px;
+}
+.spotify-connect-copy--muted {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  max-width: 320px;
+  margin-top: -0.3rem;
+}
+.spotify-connect-btn {
+  width: 100%;
+  justify-content: center;
+  background: #1DB954 !important;
+  color: #06120a !important;
+}
+.spotify-connect-btn:disabled { opacity: 0.7; }
+.spotify-connect-alt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  transition: color var(--dur-md);
+}
+.spotify-connect-alt:hover { color: var(--text-primary); }
+.spotify-back-link { margin: 0.5rem 0 0 0.9rem; }
+
+/* ── Spotify: barra de cuenta conectada ───────────────────── */
+.spotify-account-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 20px 0.75rem;
+  padding: 0.5rem 0.7rem;
+  background: rgba(29, 185, 84, 0.08);
+  border: 1px solid rgba(29, 185, 84, 0.25);
+  border-radius: var(--radius-full);
+}
+.spotify-account-avatar {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.spotify-account-avatar--fallback {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(29, 185, 84, 0.25);
+  color: #1DB954;
+}
+.spotify-account-name {
+  flex: 1; min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.spotify-account-disconnect {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--dur-md), color var(--dur-md);
+}
+.spotify-account-disconnect:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+/* ── Spotify: lista de biblioteca (playlists + Me Gusta) ──── */
+.spotify-lib-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  max-height: 46vh;
+}
+.spotify-lib-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.55rem 1.1rem;
+  cursor: pointer;
+  transition: background var(--dur-md);
+}
+.spotify-lib-item:hover { background: rgba(255,255,255,0.05); }
+.spotify-lib-item input[type='checkbox'] { flex-shrink: 0; width: 16px; height: 16px; accent-color: var(--accent); }
+.spotify-lib-item-art {
+  width: 40px; height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+}
+.spotify-lib-item-art img { width: 100%; height: 100%; object-fit: cover; }
+.spotify-lib-item-art--liked { background: rgba(255,255,255,0.1); color: #ff4d6d; }
+.spotify-lib-item-info { flex: 1; min-width: 0; }
+.spotify-lib-item-name {
+  font-size: 0.86rem; font-weight: 600; color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.spotify-lib-item-sub { font-size: 0.74rem; color: var(--text-tertiary); }
+
+/* ── Detail hero ──────────────────────────────────────────── */
+.pl-detail-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 1.75rem;
+  margin: 1.25rem 0 2rem;
+  flex-wrap: wrap;
+}
+.pl-detail-cover-wrap {
+  flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+}
+.pl-detail-cover-wrap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.pl-cover-edit-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--dur-sm) ease;
+  pointer-events: none;
+}
+.pl-cover-edit-overlay span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.pl-detail-cover-wrap:hover .pl-cover-edit-overlay,
+.pl-detail-cover-wrap:focus-visible .pl-cover-edit-overlay {
+  opacity: 1;
+}
+
+/* En touch no existe :hover, así que este overlay (la única pista de
+   que la portada se puede tocar para cambiarla) nunca se veía hasta
+   que ya tocaste y el picker de fotos se abrió — cero descubribilidad.
+   Acá lo convertimos en una placa fija chiquita en la esquina, siempre
+   visible, en vez del overlay oscuro completo (que taparía la portada
+   todo el tiempo si quedara prendido de forma permanente). */
+@media (hover: none) {
+  .pl-cover-edit-overlay {
+    top: auto;
+    left: auto;
+    right: 6px;
+    bottom: 6px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: rgba(10, 10, 15, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    opacity: 1;
+  }
+  .pl-cover-edit-overlay span {
+    display: none;
+  }
+}
+
+.pl-cover-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-base, #0a0a0f);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background var(--dur-sm), transform var(--dur-sm);
+}
+.pl-cover-remove:hover { background: rgba(255,255,255,0.16); }
+@media (hover: hover) and (pointer: fine) {
+  .pl-cover-remove:hover { transform: scale(1.08); }
+}
+
+.pl-hero-cover {
+  width: clamp(140px, 20vw, 220px);
+  height: clamp(140px, 20vw, 220px);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+}
+.pl-hero-cover img, .pl-hero-cover .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.pl-hero-cover--empty { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+.pl-hero-cover--quad {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.pl-hero-cover--quad img, .pl-hero-cover--quad .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+.pl-detail-meta { flex: 1; min-width: 0; }
+.pl-detail-name {
+  display: block;
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  color: var(--text-primary);
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  padding: 0.1rem 0;
+  margin: 0.25rem 0 0.5rem;
+  width: 100%;
+  max-width: 500px;
+  outline: none;
+  transition: border-color var(--dur-md);
+  /* Antes un nombre largo se cortaba en seco contra el borde de la
+     pantalla (un <input> no wrappea ni corta con "…" solo): ahora al
+     menos se ve "Me Gusta de Spotif…" en vez de un corte crudo a mitad
+     de palabra. El breakpoint de abajo (donde la portada pasa a ir
+     arriba) es el fix real — esto es la red de seguridad para cuando
+     el nombre igual no entra. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-detail-name:focus { border-bottom-color: var(--accent); }
+.pl-detail-counts {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  margin-bottom: 1.25rem;
+}
+.pl-dot { opacity: 0.5; }
+.pl-detail-counts svg { opacity: 0.7; }
+
+.pl-detail-actions { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+.pl-btn-play {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent);
+  color: #0a0a0f;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.pl-btn-play:disabled { opacity: 0.4; cursor: not-allowed; }
+.pl-btn-shuffle {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background var(--dur-md);
+}
+.pl-btn-shuffle:hover { background: rgba(255,255,255,0.12); }
+.pl-btn-shuffle:disabled { opacity: 0.4; cursor: not-allowed; }
+.pl-btn-delete {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--danger, #f87171);
+  cursor: pointer;
+  transition: background var(--dur-md);
+}
+.pl-btn-delete:hover { background: rgba(248,113,113,0.12); }
+
+/* ── Song list ────────────────────────────────────────────── */
+.pl-song-list { display: flex; flex-direction: column; }
+.pl-song-list-header {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.4rem 0.75rem 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+}
+.pl-song-col-num { text-align: center; }
+.pl-song-col-dur { text-align: right; }
+
+.pl-song-row {
+  display: grid;
+  grid-template-columns: 32px 40px 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.45rem 0.75rem 0.45rem 0.5rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--dur-sm);
+}
+.pl-song-row:hover, .pl-song-row.active { background: rgba(255,255,255,0.06); }
+
+.pl-song-num {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+  display: flex; align-items: center; justify-content: center;
+}
+.pl-song-row:hover .pl-song-num { color: var(--accent-strong); }
+.pl-song-art {
+  width: 40px; height: 40px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.pl-song-art img, .pl-song-art .cached-img-fallback {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.pl-song-info { min-width: 0; }
+.pl-song-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pl-song-artist {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 0.1rem;
+}
+.pl-song-dur {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  text-align: right;
+  min-width: 36px;
+}
+.pl-song-remove {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: none;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-sm), background var(--dur-sm);
+}
+.pl-song-row:hover .pl-song-remove { opacity: 1; }
+.pl-song-remove:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+
+@media (max-width: 560px) {
+  /* Portada + nombre lado a lado le dejaban al <input> del nombre
+     apenas ~180-200px de ancho en un teléfono — cualquier nombre de
+     playlist mediano (ej. "Me Gusta de Spotify") se cortaba en seco
+     contra el borde de la pantalla. Acá la portada pasa arriba y el
+     nombre pasa a tener el ancho completo de la página. */
+  .pl-detail-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .pl-hero-cover {
+    width: clamp(120px, 34vw, 180px);
+    height: clamp(120px, 34vw, 180px);
+  }
+  .pl-detail-meta { width: 100%; }
+  .pl-detail-name { max-width: 100%; }
+}
+
+@media (max-width: 500px) {
+  .pl-detail-hero { gap: 1rem; }
+  .pl-song-list-header,
+  .pl-song-row { grid-template-columns: 28px 36px 1fr auto; }
+  .pl-song-col-dur, .pl-song-dur { display: none; }
+  .pl-song-remove { opacity: 1; }
+}

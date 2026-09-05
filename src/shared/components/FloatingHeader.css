@@ -1,0 +1,130 @@
+/* Solo tiene sentido a partir de 900px — debajo de eso ya está
+   MobileTabBar cubriendo el mismo gesto abajo, y montar los dos a la
+   vez sería navegación duplicada. */
+.floating-header-dock {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .floating-header-dock {
+    display: flex;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-w);
+    right: 0;
+    z-index: 20;
+    padding-top: 0.9rem;
+    /* pointer-events solo en la píldora, no en toda la franja — así no
+       tapa clicks del contenido que scrollea por debajo del dock. */
+    pointer-events: none;
+  }
+
+  /* show=false (login, /player) ya NO desmonta el dock — ver el
+     comentario en FloatingHeader.jsx. Se queda montado siempre para que
+     el ref se enganche una sola vez, al arrancar; acá solo lo tapamos. */
+  .floating-header-dock--hidden {
+    display: none;
+  }
+
+  /* Mismo ajuste que .sidebar: en PWA de escritorio con Window Controls
+     Overlay, la píldora de navegación se corre debajo de la franja
+     arrastrable del titlebar en vez de competir por el mismo espacio
+     que los botones nativos de minimizar/maximizar/cerrar. */
+  html.pwa-wco .floating-header-dock {
+    padding-top: calc(0.9rem + var(--wco-height, 33px));
+  }
+}
+
+.floating-header {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  pointer-events: auto;
+  isolation: isolate;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    0 14px 32px -10px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .floating-header {
+    background: var(--bg-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.floating-header-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 40px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  transition: color var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.floating-header-item:hover {
+  color: var(--text-secondary);
+}
+
+.floating-header-item.active {
+  color: var(--accent-strong);
+}
+
+.floating-header-item:active {
+  transform: scale(0.9);
+}
+
+/* Glow de activación — mismo lenguaje que la tab bar móvil. */
+.floating-header-item svg {
+  transition: filter var(--dur-md) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.floating-header-item.active svg {
+  filter: drop-shadow(0 0 8px var(--accent-glow));
+}
+
+/* Un solo elemento arrastrable (x viene de un motion value, ver
+   FloatingHeader.jsx) — mismo patrón que .mobile-tab-pill, para que el
+   gesto de "agarrar y deslizar" se sienta idéntico arriba y abajo. */
+.floating-header-pill {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-dim);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  z-index: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.floating-header-pill:active {
+  cursor: grabbing;
+}
+
+/* La barra entera es superficie de drag (dragControls, ver
+   FloatingHeader.jsx): sin esto, arrastrar con mouse selecciona el
+   contenido de la página que queda debajo del recorrido. touch-action
+   none por el mismo motivo que en MobileTabBar.css — requisito de
+   dragControls para que el gesto no muera en pointercancel en pantallas
+   touch. */
+.floating-header {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}

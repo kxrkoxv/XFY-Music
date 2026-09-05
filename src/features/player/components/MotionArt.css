@@ -1,0 +1,67 @@
+.motion-art-container {
+  position: fixed;
+  inset: -10%; /* same inset as .player-bg so it tiles perfectly */
+  z-index: 1; /* above player-bg (z:0), below scrim (z:2) */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.motion-art-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.15); /* prevent blurred edges, same as player-bg */
+  filter: blur(40px) saturate(1.6) brightness(0.6);
+  opacity: 0;
+  transition: opacity 1.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.motion-art-video.is-playing {
+  opacity: 1;
+}
+
+/* Pausado: se desvanece el motion art y queda la portada estática (.player-bg)
+   debajo, nítida — mismo criterio que .motion-art-cover-video.is-paused. */
+.motion-art-video.is-playing.is-paused {
+  opacity: 0;
+}
+
+/* --------------------------------------
+ * Cover styles
+ * -------------------------------------- */
+
+.motion-art-cover-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit; /* inherit radius from .player-art */
+  z-index: 2; /* place above static image */
+}
+
+.motion-art-cover-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1s ease;
+}
+
+.motion-art-cover-video.is-playing {
+  opacity: 1;
+}
+
+/* Al pausar la canción: la carátula animada se desvanece y queda visible
+   la <img class="player-art"> estática de abajo, nítida — el efecto
+   "portada de vinilo" que se ve en el reproductor pausado. */
+.motion-art-cover-video.is-playing.is-paused {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.motion-art-scrim {
+  display: none; /* scrim is handled by .player-bg-scrim above z:2 */
+}
+

@@ -1,0 +1,136 @@
+/* Misma posición flotante que la tarjeta de instalar PWA (top-center,
+   safe-area-aware), pero el material es la variante MÁS frosted del
+   vidrio líquido — blur y saturación más altos, casi sin tinte de color
+   — que es justo lo que Apple usa en iOS 26 para notificaciones y el
+   Centro de Notificaciones (a diferencia de la píldora del tab bar, que
+   sí lleva tinte del accent). Ver comentario del componente. */
+.notif-prompt {
+  position: fixed;
+  top: calc(1rem + env(safe-area-inset-top));
+  left: 1rem;
+  right: 1rem;
+  z-index: 39;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: var(--radius-lg);
+  background: rgba(28, 28, 34, 0.58);
+  backdrop-filter: blur(34px) saturate(220%);
+  -webkit-backdrop-filter: blur(34px) saturate(220%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Cuando conviven con la tarjeta de instalar PWA, esta se corre debajo en
+   vez de tapearla — las dos comparten la misma lane top-center. */
+.notif-prompt--stacked {
+  top: calc(1rem + env(safe-area-inset-top) + 4.75rem);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .notif-prompt {
+    background: var(--bg-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.notif-prompt-icon {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-strong);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.03) 60%),
+    var(--accent-dim);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.notif-prompt-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.notif-prompt-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+}
+
+.notif-prompt-copy {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.77rem;
+  line-height: 1.4;
+}
+
+.notif-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.notif-prompt-btn {
+  padding: 0.42rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: none;
+  font-weight: 700;
+  font-size: 0.78rem;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out),
+    opacity var(--dur-sm) var(--ease-out);
+}
+
+.notif-prompt-btn:active {
+  transform: scale(0.96);
+}
+
+.notif-prompt-btn--accent {
+  background: var(--accent);
+  color: #fff;
+}
+
+.notif-prompt-btn--accent:hover {
+  background: var(--accent-strong);
+}
+
+.notif-prompt-btn--ghost {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.notif-prompt-btn--ghost:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.notif-prompt-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  margin-top: 0.1rem;
+}
+
+.notif-prompt-close:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}

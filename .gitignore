@@ -1,0 +1,31 @@
+# Environment variables
+.env*.local
+
+# Common ignores
+node_modules
+.next/
+.DS_Store
+# Local platform folders
+.netlify
+.vercel/
+
+# Build de producción — Vercel lo genera solo con `npm run build`
+dist/
+
+# Cache local del reproductor
+.video-cache/
+
+# Python (lyrics-aligner)
+__pycache__/
+*.pyc
+
+# Builds/zips locales
+*.zip
+.env
+
+.vercel
+.env*
+
+# Artefactos de build que no deben ir al repo
+bundle.js
+*.tsbuildinfo

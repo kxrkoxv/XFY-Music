@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Manifest PWA: sin este link, Chrome/Edge NO consideran instalable la
+         app aunque el manifest y el SW existan (criterio de installabilidad). -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#06060a" />
+    <!-- Modo "app real" en iOS/Android al agregar a inicio (ya es PWA vía manifest + sw.js) -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="XFY" />
+    <!-- Evita que iOS convierta números de teléfono / dirección en links azules dentro de la UI -->
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
+    <title>XFY</title>
+    <script type="module" src="/src/main.tsx"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

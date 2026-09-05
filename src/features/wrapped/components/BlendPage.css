@@ -1,0 +1,151 @@
+.blend-page {
+  min-height: 100vh;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 90px);
+  background: var(--color-bg-primary, #0b0714);
+  color: var(--color-text-primary, #fff);
+}
+
+.blend-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: calc(var(--page-top-inset) + 16px) 20px 12px;
+}
+
+.blend-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.blend-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blend-header-title h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.blend-content {
+  padding: 8px 20px 24px;
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.blend-section h2 {
+  font-size: 15px;
+  margin: 0 0 4px;
+}
+
+.blend-hint {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0 0 10px;
+}
+
+.blend-code-row {
+  display: flex;
+  gap: 8px;
+}
+
+.blend-code-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: inherit;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.blend-icon-btn {
+  width: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.blend-paste-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: inherit;
+  font-family: monospace;
+  font-size: 12px;
+  resize: vertical;
+  margin-bottom: 10px;
+}
+
+.blend-error {
+  font-size: 13px;
+  color: #fca5a5;
+  margin: 0 0 10px;
+}
+
+.blend-blend-btn,
+.blend-save-btn,
+.blend-play-all-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: #8b5cf6;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.blend-blend-btn:disabled,
+.blend-save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.blend-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.blend-save-btn {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+.blend-play-all-btn {
+  margin-top: 10px;
+}
+
+.blend-spin {
+  animation: blend-spin 0.8s linear infinite;
+}
+
+@keyframes blend-spin {
+  to { transform: rotate(360deg); }
+}

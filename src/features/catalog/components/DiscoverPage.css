@@ -1,0 +1,280 @@
+.discover-page {
+  min-height: 100dvh;
+  padding: calc(1.5rem + var(--page-top-inset)) clamp(1rem, 3vw, 2.5rem) calc(6rem + env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse 100% 400px at 50% 0%, var(--accent-10), transparent);
+}
+
+@media (min-width: 900px) {
+  .discover-page {
+    padding-left: calc(240px + clamp(1rem, 3vw, 2.5rem));
+  }
+}
+
+@media (max-width: 899px) {
+  .discover-page {
+    padding-bottom: calc(var(--page-bottom-clearance) + env(safe-area-inset-bottom));
+  }
+}
+
+/* El botón "Volver" usa .page-back — ver global.css para el motivo de
+   por qué vive ahí y no acá. */
+
+/* .discover-title, .discover-loading y .discover-spin viven en
+   global.css — ArtistPage y ArtistsPage también las usan. */
+
+.discover-subtitle {
+  margin: 0 0 1.5rem;
+  color: var(--text-secondary);
+  max-width: 640px;
+  line-height: 1.6;
+}
+
+.discover-search {
+  margin-bottom: 1rem;
+}
+
+.discover-search input {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 0.75rem 1.1rem;
+  color: var(--text-primary);
+  font-size: 16px;
+}
+
+.discover-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.discover-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.discover-genre-chip {
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--dur-sm) var(--ease-out), color var(--dur-sm) var(--ease-out);
+}
+
+.discover-genre-chip:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.discover-genre-chip.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* --- Grid de géneros/moods ---
+   Vista de exploración por género (el gap real vs el tab "Explorar" de
+   Spotify/Apple Music): tiles de color a pantalla completa, mismo espíritu
+   que sus grids de browse, pero con la paleta violeta de la app en vez de
+   copiar sus colores de marca. */
+.discover-genre-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 1.75rem;
+}
+
+.discover-genre-tile {
+  position: relative;
+  height: 72px;
+  border-radius: var(--radius-md);
+  border: none;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  align-items: flex-end;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 24px -12px rgba(0, 0, 0, 0.55);
+  transform: scale(1);
+  transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-md) var(--ease-out), outline-color var(--dur-sm) var(--ease-out);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.discover-genre-tile:hover {
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.7);
+}
+
+.discover-genre-tile:active {
+  transform: scale(0.97);
+}
+
+.discover-genre-tile.active {
+  outline-color: #fff;
+}
+
+/* Sombra diagonal sutil sobre el degradé — el mismo truco de "vidrio" que
+   .qg-card-scrim usa sobre las carátulas, para que el texto siempre lea
+   bien sin importar de qué color sea el tile. */
+.discover-genre-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.32) 100%);
+  pointer-events: none;
+}
+
+.discover-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.discover-genre-clear {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-sm) var(--ease-out), color var(--dur-sm) var(--ease-out);
+}
+
+.discover-genre-clear:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.discover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 1.1rem;
+}
+
+.discover-card {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.discover-card:active {
+  transform: scale(0.97);
+}
+
+.discover-card-art {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface);
+  margin-bottom: 0.6rem;
+}
+
+.discover-card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.discover-card-art-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--accent-dim), transparent);
+}
+
+.discover-card-play {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.5rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: #0a0a0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity var(--dur-sm) var(--ease-out), transform var(--dur-sm) var(--ease-out);
+}
+
+/* Hover con transform gateado a punteros reales: en táctil el estado
+   :hover queda "pegado" tras el primer tap y la burbujita no desaparece. */
+@media (hover: hover) and (pointer: fine) {
+  .discover-card:hover .discover-card-play {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.discover-card-info {
+  min-width: 0;
+}
+
+.discover-card-artist {
+  cursor: pointer;
+}
+
+.discover-card-artist:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.discover-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.discover-card-fav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  transition: transform var(--dur-press) var(--ease-out), background var(--dur-sm) var(--ease-out);
+}
+
+.discover-card-fav:hover {
+  background: var(--surface-hover);
+}
+
+.discover-card-fav:active {
+  transform: scale(0.9);
+}
+
+@media (max-width: 899px) {
+  .discover-card-fav {
+    width: 38px;
+    height: 38px;
+  }
+}

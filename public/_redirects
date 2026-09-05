@@ -1,0 +1,11 @@
+# Netlify: reescribe /api/* hacia las APIs reales para que XFY funcione
+# igual en producción que con el proxy de "npm run dev" (vite.config.js).
+# Si despliegas en otro hosting (Vercel, Cloudflare Pages, etc.), replica
+# estas mismas reglas con su mecanismo de rewrites/redirects.
+/api/itunes/*   https://itunes.apple.com/:splat                      200
+/api/audiodb/*  https://www.theaudiodb.com/api/v1/json/123/:splat    200
+/api/lrclib/*   https://lrclib.net/api/:splat                        200
+
+# SPA: todo lo demás lo resuelve el router de React (HashRouter ya evita
+# necesitar esto para las rutas de la app, pero no está de más).
+/*  /index.html  200

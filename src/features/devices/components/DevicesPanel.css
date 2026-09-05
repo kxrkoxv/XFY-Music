@@ -1,0 +1,357 @@
+.devices-panel {
+  width: 100%;
+  max-width: 420px;
+}
+
+.devices-panel__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.devices-panel__subtitle {
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+  margin-bottom: 0.9rem;
+}
+
+.devices-panel__empty {
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 1.75rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.devices-panel__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.devices-panel__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: background var(--dur-sm) var(--ease-out), border-color var(--dur-sm) var(--ease-out),
+    opacity var(--dur-sm) var(--ease-out);
+}
+
+.devices-panel__item.is-active {
+  border-color: var(--accent-40);
+  background: var(--accent-08);
+  box-shadow: 0 0 0 1px var(--accent-12), 0 6px 20px -12px rgba(0, 0, 0, 0.5);
+}
+
+.devices-panel__item.is-offline {
+  opacity: 0.55;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .devices-panel__item:not(.is-offline):hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: var(--surface-hover);
+  }
+
+  .devices-panel__item.is-active:not(.is-offline):hover {
+    background: var(--accent-12);
+  }
+}
+
+.devices-panel__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0.15rem;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+
+.devices-panel__main:disabled {
+  cursor: default;
+}
+
+.devices-panel__icon-wrap {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: var(--accent-08);
+  transition: background var(--dur-sm) var(--ease-out);
+}
+
+.devices-panel__item.is-active .devices-panel__icon-wrap {
+  background: var(--accent-12);
+}
+
+.devices-panel__icon {
+  color: var(--accent);
+}
+
+.devices-panel__dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  border: 2px solid var(--bg-elevated);
+}
+
+.devices-panel__dot.is-online {
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5);
+  animation: devices-dot-pulse 2.4s ease-out infinite;
+}
+
+@keyframes devices-dot-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.45); }
+  70% { box-shadow: 0 0 0 5px rgba(52, 211, 153, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .devices-panel__dot.is-online {
+    animation: none;
+  }
+}
+
+.devices-panel__info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.devices-panel__name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.devices-panel__name em {
+  font-style: normal;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.devices-panel__meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.devices-panel__active-label {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent-strong);
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-25);
+  border-radius: var(--radius-full);
+  padding: 0.2rem 0.55rem;
+}
+
+/* Ecualizador animado — mismo lenguaje visual que Spotify para "esto es
+   lo que está sonando ahora mismo" en un dispositivo remoto. */
+.devices-panel__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.devices-panel__bars i {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: devices-bar-bounce 0.9s ease-in-out infinite;
+}
+
+.devices-panel__bars i:nth-child(1) { animation-delay: -0.6s; }
+.devices-panel__bars i:nth-child(2) { animation-delay: -0.3s; }
+.devices-panel__bars i:nth-child(3) { animation-delay: 0s; }
+
+@keyframes devices-bar-bounce {
+  0%, 100% { height: 4px; }
+  50% { height: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .devices-panel__bars i {
+    animation: none;
+    height: 9px;
+  }
+}
+
+.devices-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.devices-panel__icon-btn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background var(--dur-press) var(--ease-out), color var(--dur-press) var(--ease-out);
+}
+
+.devices-panel__icon-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.devices-panel__icon-btn--danger:hover {
+  color: var(--danger);
+}
+
+/* Control remoto inline — aparece bajo el dispositivo activo cuando NO es
+   este mismo, para pausar/saltar/subir volumen sin transferir el audio. */
+.devices-panel__remote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--accent-25);
+}
+
+.devices-panel__remote-transport {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex-shrink: 0;
+}
+
+.devices-panel__remote-play {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent);
+  color: var(--bg);
+  cursor: pointer;
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.devices-panel__remote-play:active {
+  transform: scale(0.92);
+}
+
+.devices-panel__remote-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  max-width: 130px;
+}
+
+.devices-panel__remote-volume-icon {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.devices-panel__remote-volume input[type='range'] {
+  flex: 1;
+  min-width: 0;
+  height: 3px;
+  border-radius: var(--radius-full);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.devices-panel__rename-input {
+  width: 140px;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-40);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   Skeleton — placeholders mientras llega el primer fetch de dispositivos. */
+.devices-panel__skeleton-item {
+  gap: 0.75rem;
+}
+
+.devices-panel__skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--surface-hover) 25%,
+    var(--accent-08) 50%,
+    var(--surface-hover) 75%
+  );
+  background-size: 200% 100%;
+  animation: devices-skeleton-sheen 1.4s ease-in-out infinite;
+}
+
+.devices-panel__skeleton--icon {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.devices-panel__skeleton-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.devices-panel__skeleton--line {
+  height: 9px;
+}
+
+@keyframes devices-skeleton-sheen {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .devices-panel__skeleton {
+    animation: none;
+  }
+}

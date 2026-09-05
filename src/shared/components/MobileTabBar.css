@@ -1,0 +1,257 @@
+/* Isla flotante — separada de los tres bordes, en forma de píldora,
+   cristal líquido — que es el lenguaje que Telegram y iOS 26
+   adoptaron para las barras inferiores: no un panel que corta la
+   pantalla en dos, sino un objeto que flota sobre el contenido. El
+   margen contra el borde inferior real (--tabbar-bottom-gap) es
+   chico a propósito — "bien abajito", casi pegada al home indicator,
+   como WhatsApp — pero sigue siendo una isla, no una toolbar acoplada
+   de punta a punta. */
+.mobile-tab-bar {
+  position: fixed;
+  left: var(--tabbar-gap);
+  right: var(--tabbar-gap);
+  bottom: calc(var(--tabbar-bottom-gap) + env(safe-area-inset-bottom));
+  z-index: 25;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  height: var(--tabbar-h);
+  max-width: 640px;
+  margin: 0 auto;
+  border-radius: var(--radius-full);
+  /* VISIBLE, no hidden: la lente es más alta que la barra y DESBORDA por
+     arriba y por abajo (así se ve en iOS 26 — una gota que se derrama
+     sobre los bordes del contenedor, no un highlight recortado adentro).
+     El fondo de la barra sigue redondeado por su propio border-radius. */
+  overflow: visible;
+  isolation: isolate;
+  /* La píldora vive como un único elemento posicionado adentro de esta
+     barra (ver .mobile-tab-pill) en vez de un pseudo-elemento por botón
+     — así se puede arrastrar como un slider real en vez de solo
+     teletransportarse de un botón a otro.
+     touch-action NONE (no pan-y) — requisito de dragControls para touch
+     (docs de motion): con pan-y, el browser se apropia del gesto ante el
+     primer movimiento diagonal y dispara pointercancel, matando el drag
+     antes de que arranque. La barra es una isla flotante: empezar un
+     scroll desde acá no es un gesto que nadie espere. */
+  touch-action: none;
+  /* La barra entera es superficie de drag (dragControls): sin esto, un
+     drag con mouse selecciona el texto de los labels mientras arrastrás. */
+  user-select: none;
+  -webkit-user-select: none;
+
+  /* Más transparente que el resto de las superficies de vidrio de la app
+     (mini-player, tarjeta de instalación): esta barra flota SOBRE
+     contenido que scrollea constantemente detrás, así que conviene que
+     se note más lo que hay debajo — el mismo criterio que la tab bar de
+     la referencia, casi transparente hasta que algo se mueve atrás.
+     Alpha bajado a 0.22 para evitar "cuadro negro" cuando backdrop-filter
+     no está disponible (p.ej. Firefox Android, algunos WebViews). */
+  background: rgba(16, 15, 22, min(1, calc(0.22 * var(--glass-clarity))));
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    /* Sombra hacia arriba, no hacia abajo — la píldora "flota" sobre
+       el contenido que scrollea detrás, igual que en las apps nativas. */
+    0 -6px 10px -6px rgba(0, 0, 0, 0.25),
+    0 18px 40px -8px rgba(0, 0, 0, 0.55),
+    /* Filo de luz muy fino en el borde superior: es lo que hace que
+       se lea como vidrio curvo y no como un rectángulo gris translúcido. */
+    inset 0 1px 0 var(--glass-highlight);
+  /* `bottom` entra acá a propósito: es lo que cambia si --tabbar-h se
+     achica en landscape (ver media query al fondo) o si el inset de
+     safe-area tarda un frame en asentarse — sin esto saltaba en seco de
+     una posición a otra; con la transición, cualquier reacomodo se lee
+     como un movimiento, no como un salto. `opacity`/`transform` cubren
+     la entrada/salida (ver .mobile-tab-bar--hidden, ya no es un
+     display:none seco). */
+  transition:
+    transform var(--dur-sm) var(--ease-out),
+    bottom var(--dur-md) var(--ease-out),
+    opacity var(--dur-md) var(--ease-out);
+}
+
+/* A partir de acá el Sidebar de escritorio toma el control (ver
+   Sidebar.css, min-width: 900px) — la tab bar se retira del todo en
+   vez de solo achicarse, para no dejar un rastro de UI duplicada. */
+@media (min-width: 900px) {
+  .mobile-tab-bar {
+    display: none;
+  }
+}
+
+/* show=false (login, /player, o mientras la sesión todavía está
+   restaurándose al arrancar/recargar) ya NO desmonta el <nav> — ver el
+   comentario grande en MobileTabBar.jsx. El componente se queda montado
+   siempre para que el ref se enganche una sola vez, desde el arranque, y
+   la medición de ancho + el bind de @use-gesture tengan un nodo real
+   desde el principio.
+   Antes esto era `display: none`: un corte seco que además, al volver a
+   mostrarse, hacía que la barra "apareciera" ya en su posición final sin
+   ningún gesto de entrada — se sentía como que se hubiera teletransportado.
+   Con opacity/transform (y transition arriba) se desvanece y desliza un
+   poco hacia abajo en vez de cortar, y pointer-events la saca del paso
+   mientras está invisible (login, reproductor a pantalla completa) para
+   que no tape taps de nada de lo que hay debajo. */
+.mobile-tab-bar--hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-tab-bar {
+    transition: opacity var(--dur-sm) linear;
+  }
+  .mobile-tab-bar--hidden {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mobile-tab-bar {
+    background: rgba(16, 15, 22, 0.35);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: 0 -6px 10px -6px rgba(0, 0, 0, 0.25), 0 18px 40px -8px rgba(0, 0, 0, 0.55);
+  }
+}
+
+.mobile-tab-item {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  padding: 0.3rem 0.25rem;
+  /* Toda la altura de la barra es zona táctil, no solo el ícono —
+     evita el típico "casi le doy" de las tab bars mal hechas. */
+  min-height: 44px;
+  /* transform NO va acá: lo escribe motion por frame durante el drag
+     (magnificación por proximidad, ver TabItem en MobileTabBar.jsx) —
+     una transition CSS encima de un valor ya continuo solo mete lag. */
+  transition: color var(--dur-sm) var(--ease-out);
+  transform-origin: center;
+  /* El pointerdown aterriza en el BOTÓN (tapan la lente): el
+     touch-action efectivo de un touch empieza en el hit-target, así que
+     cada botón también lo necesita en none para que el drag que arranca
+     en la barra no muera en pointercancel. */
+  touch-action: none;
+}
+
+/* Ahora es UN solo elemento que se mueve por toda la barra (x viene de
+   un motion value, ver MobileTabBar.jsx) en vez de un pseudo-elemento
+   que se reinstancia en cada botón — por eso se puede agarrar y
+   arrastrar como una perilla, no solo mirar cómo salta sola.
+
+   La lente: material de vidrio MÁS denso que el de la barra (el
+   backdrop-filter propio se apila sobre el de la barra = el
+   "engrosamiento" del vidrio bajo la gota), filo de luz arriba y abajo,
+   y franjas cromáticas rosadas/celestes muy sutiles en los bordes — la
+   iridiscencia que hace que se lea como gota de Liquid Glass y no como
+   un rectángulo redondeado con tinte. Desborda 5px de cada lado
+   vertical (overflow visible de la barra). */
+.mobile-tab-pill {
+  position: absolute;
+  top: -5px;
+  /* Antes esto era "bottom: -5px" (altura implícita = alto del <nav>
+     + 10px). En la práctica la píldora terminaba rindiendo MÁS baja
+     que el contenido real del tab (ícono + label), así que en vez de
+     "derramarse" 5px por debajo del label como decía el comentario de
+     arriba, le cortaba la mitad de abajo (la "y" de "Playlists" quedaba
+     afuera del vidrio). Con la altura calculada explícitamente contra
+     --tabbar-h no depende de cómo el motor termine repartiendo top/
+     bottom — siempre es exactamente el alto de la barra + 10px. */
+  height: calc(var(--tabbar-h) + 10px);
+  left: 0;
+  border-radius: var(--radius-full);
+  z-index: 0;
+  cursor: grab;
+  touch-action: none;
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.17),
+      rgba(255, 255, 255, 0.05) 55%,
+      rgba(255, 255, 255, 0.1)
+    ),
+    var(--accent-dim);
+  backdrop-filter: blur(18px) saturate(180%) brightness(1.12);
+  -webkit-backdrop-filter: blur(18px) saturate(180%) brightness(1.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 24px -8px rgba(0, 0, 0, 0.5),
+    -6px 0 16px -8px rgba(255, 140, 200, 0.3),
+    6px 0 16px -8px rgba(140, 200, 255, 0.3);
+  will-change: transform;
+}
+
+.mobile-tab-pill:active {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mobile-tab-pill {
+    background: var(--accent-dim);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-color: var(--border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 10px 24px -8px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.mobile-tab-item .mobile-tab-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  /* Determinístico a propósito: sin esto, el alto de línea heredado de
+     la fuente del body decide cuánto label sobresale por debajo del
+     ícono, y ese margen extra es justo lo que hacía que la píldora (ver
+     .mobile-tab-pill) se quedara corta contra el label en algunas
+     fuentes/navegadores. */
+  line-height: 1;
+}
+
+/* El wrapper del ícono es motion.span (lift con spring, ver TabItem):
+   el glow de activación va por filter con transición propia — entra
+   suave junto con el color, sin saltos. */
+.mobile-tab-item svg {
+  transition: filter var(--dur-md) var(--ease-out);
+}
+
+.mobile-tab-item.active svg {
+  filter: drop-shadow(0 0 9px var(--accent-glow));
+}
+
+.mobile-tab-item.active {
+  color: var(--accent-strong);
+}
+
+/* En la barra achicada de landscape (ver --tabbar-h en tokens.css) el
+   texto bajo el ícono ya no entra cómodo — se oculta y el ícono queda
+   centrado, mismo patrón que usan las tab bars nativas en horizontal. */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* BUG: este selector antes era ".mobile-tab-item span" a secas — como
+     el ícono también vive envuelto en un <span> (.mobile-tab-icon, ver
+     TabItem en MobileTabBar.jsx), ese selector apagaba el ÍCONO Y el
+     label al mismo tiempo. Resultado: en cualquier celular acostado la
+     barra entera se quedaba vacía (la píldora de vidrio se veía, pero
+     sin ninguno de los 5 tabs adentro). Acotado a la clase del label
+     nada más — el ícono ahora sobrevive al landscape. */
+  .mobile-tab-item .mobile-tab-label {
+    display: none;
+  }
+  .mobile-tab-item {
+    min-height: 36px;
+    padding: 0.2rem;
+  }
+}

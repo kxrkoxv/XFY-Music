@@ -1,0 +1,37 @@
+name: CI
+
+# Lint + tests + build en cada push a main y en cada PR — antes de esto no
+# había NINGÚN check automático (el único workflow era keep-render-alive),
+# así que un error de sintaxis o un test roto llegaba a producción sin que
+# nada avisara.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # pineado a major 24, igual que engines en package.json
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build

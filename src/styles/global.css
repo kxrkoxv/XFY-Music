@@ -1,0 +1,411 @@
+* {
+  box-sizing: border-box;
+}
+
+/* --- Transición de tema (View Transitions API) ---
+   applyTheme({ animate: true }) envuelve el swap de tokens en
+   document.startViewTransition: el navegador captura el estado viejo,
+   aplica el tema y crossfadea los dos snapshots. Duración corta a
+   propósito — un cambio de tema no es una animación protagónica, es una
+   transición de estado; más largo se siente pesado. Reduced-motion:
+   crossfade instantáneo (los browsers que no soportan la API ni siquiera
+   entran acá — aplican el tema seco, como siempre). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
+
+html {
+  /* Sin esto, cualquier hueco entre `html` y `body` (frecuente en PWA
+     instalada: interactive-widget=resizes-content hace que el viewport
+     visual cambie de tamaño con la barra de estado/gestos del sistema,
+     y body puede quedar momentáneamente más chico que html durante ese
+     reflow) deja ver el fondo por defecto del navegador — que con
+     color-scheme:dark es NEGRO puro, no el --bg de la app. Se ve como un
+     cuadro negro sólido en cualquier pantalla, porque html envuelve toda
+     la app sin importar la ruta. Mismo color que body a propósito: si
+     alguna vez se ve el hueco, que sea invisible en vez de un salto de
+     color. */
+  background: var(--bg);
+  /* Cinturón y tirantes junto con `overflow-x: hidden` en body: en iOS/
+     Android, si un hijo se desborda sin wrappear (ej. una fila de
+     botones que no entra), el contenedor de scroll real es el viewport
+     de `html`, no `body` — sin esto, el navegador deja "pantear"
+     horizontalmente toda la página aunque body ya diga hidden, y se ve
+     como contenido cortado/corrido al costado (headers, tarjetas). */
+  overflow-x: hidden;
+  /* Sin scrollbar visible a nivel de página — a diferencia de los
+     paneles internos (.custom-scroll), acá no hay hover para revelarla
+     ni motivo real para mostrarla: el scroll de html es en gran parte
+     el padding-bottom de la tab bar sobrando por abajo (Playlists vacía
+     lo deja bien en evidencia), no contenido navegable de verdad. */
+  scrollbar-width: none;
+  /* Cualquier scroll programático (foco, anclas, "volver arriba") se
+     desliza en vez de saltar en seco — sumado al fade de transición de
+     página en App.jsx, es la otra mitad de que la navegación se sienta
+     continua en vez de una sucesión de cortes instantáneos. */
+  scroll-behavior: smooth;
+  /* Le dice a los controles nativos del sistema (checkbox, selects,
+     el asa de selección de texto, el fondo del teclado) que este sitio
+     es oscuro — sin esto, Safari/Chrome móvil los dibuja para un fondo
+     claro por defecto y quedan como manchas blancas encima de la UI
+     oscura de la app (muy visible en el teclado de iOS al escribir en
+     Configuración o en el login). */
+  color-scheme: dark;
+  /* Bug clásico de Safari/Chrome en iOS: al rotar el teléfono, el
+     navegador "adivina" que hay que agrandar el texto y reescala la
+     tipografía sin que nadie lo haya pedido — como toda la app ya usa
+     clamp()/rem pensados a propósito, ese reescalado sorpresa rompe
+     layouts en vez de ayudar. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+/* Fundido de salida justo antes de un reload silencioso por actualización
+   (ver PwaRegistration.tsx). En #root, no en html/body: así el fundido se
+   lleva puesta la UI entera (nav, mini-player, toasts) pero deja ver el
+   `--bg` del documento por debajo — el mismo negro que ya usa AppLoader —
+   en vez de ir a blanco. El resultado es un apagado suave hacia el mismo
+   color con el que arranca la pantalla de carga del otro lado del reload,
+   así se lee como una sola transición continua y no como un corte. */
+.xfy-reloading #root {
+  transition: opacity 180ms ease-out;
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xfy-reloading #root {
+    transition: none;
+  }
+}
+
+html {
+  /* Evita el "tap flash" gris/azul por defecto de Android al tocar
+     elementos — cada botón ya tiene su propio feedback (:active scale). */
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  /* La app no tiene scroll horizontal en ningún lado — si algo se
+     desborda por error (carrusel mal calculado, etc.) esto evita que
+     toda la página se corra en vez de solo ese elemento. */
+  overflow-x: hidden;
+  /* Contiene el rebote elástico (rubber-banding) dentro del propio
+     body en vez de dejarlo "escapar" hacia el pull-to-refresh nativo
+     del navegador/PWA — es lo que hace que estirar de más en el tope
+     de Inicio dispare un refresco de página en vez de simplemente
+     topar, algo que ninguna app real hace. */
+  overscroll-behavior-y: contain;
+  /* Esto es una app, no un artículo: sin esto, mantener presionado
+     cualquier texto (el género/año del artista, un título, una letra)
+     dispara el menú nativo "Copiar / Traducir" de iOS/Android, que se
+     ve totalmente fuera de lugar sobre esta UI. Los inputs/textareas de
+     abajo se lo devuelven explícitamente — ahí sí hace falta. */
+  user-select: none;
+  -webkit-user-select: none;
+  /* Además del menú de selección, iOS también dispara su propio callout
+     (con "Guardar imagen", etc.) al mantener presionado — se apaga acá
+     y se reactiva puntualmente donde sí aplique (ver abajo). */
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  /* Sin esto, cada botón espera ~300ms tras el toque por si el gesto
+     era el inicio de un doble-tap-para-zoom — con el zoom ya
+     desactivado en el viewport, ese delay es puro desperdicio y se
+     siente "tosco" comparado con una app nativa. */
+  touch-action: manipulation;
+}
+
+input {
+  font-family: inherit;
+  /* 16px es el piso mágico: cualquier input con menos que eso hace que
+     Safari en iOS lo interprete como "el usuario debe estar viendo esto
+     re chico" y haga zoom automático de golpe al tocarlo, aunque el
+     viewport ya diga user-scalable=no — ese es el bug de "el navegador
+     se pone raro" más reportado en formularios móviles. Cada input de
+     la app (login, buscadores, nombre en Configuración, crear playlist)
+     hereda esto como piso; los que antes fijaban algo menor quedan
+     corregidos más abajo, en el CSS de su propia página. */
+  font-size: 16px;
+}
+
+a {
+  color: inherit;
+  touch-action: manipulation;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+/* Los carruseles horizontales (.custom-scroll en fila) deben poder
+   arrastrarse con el dedo sin que el navegador intente interpretar el
+   gesto como scroll vertical de la página al mismo tiempo. */
+.custom-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+::selection {
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+/* Botón "Volver" compartido por Descubre, Artista, Configuración y el
+   detalle de playlist. Vive acá a propósito — carga eager, siempre —
+   porque el mismo botón se usa desde varias páginas y cada una es su
+   propio chunk lazy: si esta regla viviera en el CSS de una sola página
+   (como pasaba antes con .discover-back en DiscoverPage.css, o
+   .artist-back en ArtistPage.css), entrar a CUALQUIER OTRA página que
+   use el mismo botón sin haber pasado antes por esa primera lo deja sin
+   ningún estilo — cae al botón blanco nativo del navegador. Regla
+   general para no repetir este bug: cualquier clase que use más de una
+   página va acá, nunca en el CSS de una página específica.
+   Si alguna vez volvés a ver un botón "Volver" sin estilo: alguien
+   volvió a definirlo con otro nombre de clase en el CSS de una sola
+   página en vez de reusar esta. */
+.page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem; /* ~44px — mínimo de zona táctil de iOS HIG, este botón vivía por debajo de eso */
+  padding: 0.7rem 1.1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  cursor: pointer;
+  /* La transición de transform la maneja motion (whileTap) en BackButton —
+     acá solo queda background para que no compitan dos animadores por la
+     misma propiedad. */
+  transition: background var(--dur-sm) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .page-back:hover {
+    background: var(--surface-hover);
+  }
+}
+
+/* Título de encabezado de página + spinner de carga — compartidos por
+   Descubre, Artista y Artistas. Mismo motivo que .page-back: viven acá
+   porque más de una página los usa, ninguna de ellas puede asumir que
+   "ya se cargó" el chunk de otra. */
+.discover-title {
+  margin: 0.2rem 0 0.5rem;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  letter-spacing: -0.02em;
+}
+
+.discover-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-tertiary);
+  padding: 2rem 0;
+}
+
+.discover-spin {
+  animation: discover-spin 1s linear infinite;
+}
+
+@keyframes discover-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+/* Reduced motion NO significa cero motion: lo que se recorta es el
+   MOVIMIENTO (transform/filter/posiciones), no el feedback. Los fades de
+   opacidad y cambios de color conservan una duración corta para que la UI
+   siga siendo legible como feedback; las transiciones de propiedades de
+   movimiento quedan sin duración → salto directo, que es justo lo que pide
+   prefers-reduced-motion. Ver AUDIT del motor de letras en plans/. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, color, background-color, border-color, fill, stroke, box-shadow !important;
+    transition-duration: var(--dur-sm) !important;
+  }
+}
+
+/* ---- Mount del reproductor de YouTube (fondo, SIEMPRE oculto) ----
+   El iframe vive en #yt-engine-mount (lo monta YouTubeEngine.jsx dentro de
+   App.jsx, FUERA de las rutas — persiste siempre montado, aunque estés en
+   Inicio o Descubre, para que el audio no se corte al cambiar de pantalla).
+   Es puramente un motor de AUDIO de respaldo mientras se resuelve el <audio>
+   real (ver usePlayerStore._playViaIframe / _switchYtEngineToAudio): nunca
+   se muestra como video, en ninguna pantalla, para que el fallback sea
+   invisible además de inaudible en el corte.
+   Por eso estas reglas base van en global.css (carga siempre, eager) y NO
+   en PlayerPage.css: ese archivo ahora es un chunk lazy que solo se
+   descarga al entrar a /player — si el mount vivía ahí, en cualquier otra
+   pantalla se veía SIN estos estilos: un iframe negro a tamaño completo
+   con el ícono de YouTube tapando la página (el bug que reportaste).
+   Nunca usar display:none acá: algunos navegadores pausan el video.
+   Tampoco width/height:0 ni visibility:hidden: Safari/iOS (y Chrome con
+   la política de "throttle de video no visible") tratan un elemento de
+   tamaño cero o visibility:hidden como si estuviera descartado del layout
+   y tiende a dejar al reproductor colgado en CUED sin arrancar — el
+   mismo síntoma que el workaround de onStateChange(CUED) en
+   YouTubeEngine.tsx viene parcheando. Un tamaño real de 1×1 (y opacity/
+   clip en vez de visibility) mantiene el elemento "visible" a ojos del
+   navegador sin que se note en pantalla. */
+#yt-engine-mount {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+#yt-engine-mount .yt-cover,
+#yt-engine-mount .yt-cover > div,
+#yt-engine-mount iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+
+/* --- Tarjeta de instalación de PWA ---
+   Nunca antes se veía: el componente que la renderiza existía pero no
+   estaba montado en ningún lado (ver App.jsx). Arriba, no abajo, para no
+   competir por espacio con el mini-player + la tab bar móvil, que ya
+   viven ahí. */
+.pwa-install-card {
+  position: fixed;
+  top: calc(1rem + env(safe-area-inset-top));
+  left: 1rem;
+  right: 1rem;
+  z-index: 40;
+  max-width: 420px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--glass-highlight);
+}
+
+.pwa-install-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.pwa-install-copy {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.pwa-install-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.pwa-install-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.pwa-install-btn:hover {
+  background: var(--accent-strong);
+}
+
+.pwa-install-btn:active {
+  transform: scale(0.96);
+}
+
+.pwa-install-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.pwa-install-close:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}

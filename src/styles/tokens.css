@@ -1,0 +1,261 @@
+:root {
+  /* --- Color --- */
+  --bg: #06060a;
+  --bg-elevated: #0d0d13;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --surface-active: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.08);
+
+  --accent: #8b5cf6;
+  --accent-strong: #a78bfa;
+  --accent-dim: rgba(139, 92, 246, 0.16);
+  --accent-glow: rgba(139, 92, 246, 0.55);
+
+  /* --- Alfas de acento (sistema de temas) ---
+     Derivadas de --accent con color-mix en vez de rgba() fijos, para que
+     cualquier tema (incluidos los que se agreguen a futuro en themes.js)
+     recoloree automáticamente fondos, bordes y scrollbars sin tener que
+     tocar estos archivos ni el CSS de cada página uno por uno. Antes,
+     un montón de páginas tenían rgba(139, 92, 246, ...) escrito a mano,
+     así que cambiar de tema dejaba esos brillos/bordes pegados en violeta. */
+  --accent-04: color-mix(in srgb, var(--accent) 4%, transparent);
+  --accent-08: color-mix(in srgb, var(--accent) 8%, transparent);
+  --accent-10: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-12: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-22: color-mix(in srgb, var(--accent) 22%, transparent);
+  --accent-25: color-mix(in srgb, var(--accent) 25%, transparent);
+  --accent-30: color-mix(in srgb, var(--accent) 30%, transparent);
+  --accent-35: color-mix(in srgb, var(--accent) 35%, transparent);
+  --accent-40: color-mix(in srgb, var(--accent) 40%, transparent);
+  --accent-50: color-mix(in srgb, var(--accent) 50%, transparent);
+  --accent-60: color-mix(in srgb, var(--accent) 60%, transparent);
+
+  --text-primary: #f5f5f7;
+  --text-secondary: rgba(245, 245, 247, 0.68);
+  --text-tertiary: rgba(245, 245, 247, 0.42);
+
+  --danger: #f87171;
+  --success: #4ade80;
+
+  /* --- Radius --- */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-full: 999px;
+
+  /* --- Easing (emil-design-eng: built-in CSS easings are too weak) --- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* --- Duración (emil-design-eng: UI animations should stay under 300ms) --- */
+  --dur-press: 120ms;
+  --dur-sm: 160ms;
+  --dur-md: 220ms;
+  --dur-lg: 320ms;
+
+  /* --- Tipografía --- */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  /* --- Layout móvil ---
+     Altura del contenido de la tab bar inferior (sin contar el
+     safe-area, que se suma aparte con env() donde haga falta).
+     Se usa tanto en MobileTabBar.css como para calcular el padding
+     inferior de cada página y el offset del mini-player, así que
+     vive acá para no tener el número "60px" repetido y desincronizado
+     en cinco archivos distintos. */
+  --tabbar-h: 54px;
+  /* Margen que separa la tab bar "isla" (y el mini-player que flota
+     justo encima) de los bordes LATERALES y el hueco entre ambas
+     barras — el mismo número define esas dos distancias, así la
+     composición se lee como una sola pila de piezas separadas por el
+     mismo aire en vez de números sueltos que alguien ajusta un día y
+     descoordina el resto. El margen contra el borde INFERIOR real de
+     la pantalla es otro token aparte (--tabbar-bottom-gap, ver abajo):
+     compartía este mismo valor y quedaba demasiado alto comparado con
+     la tab bar de cualquier app nativa (WhatsApp, Instagram...), que
+     se apoya casi directo sobre el home indicator con nada de aire
+     extra más allá del safe-area. */
+  --tabbar-gap: 0.7rem;
+  /* Aire entre la tab bar y el borde inferior real, además del
+     safe-area-inset-bottom (que ya cubre el home indicator). Antes
+     esto reusaba --tabbar-gap completo (0.7rem) y sumado al inset
+     dejaba la barra flotando visiblemente más arriba que cualquier
+     tab bar nativa — se nota en cuanto se la compara lado a lado con
+     WhatsApp. Sigue siendo una "isla" (no queda pegada al borde como
+     una toolbar de navegador), pero el colchón es mucho más chico —
+     "bien abajito", casi tocando el home indicator, sin llegar a
+     acoplarse de punta a punta contra el borde. */
+  --tabbar-bottom-gap: 0.3rem;
+  /* Espacio que cada página deja abajo (padding-bottom) para que el
+     mini-player + tab bar flotantes no tapen el último tramo de
+     contenido al hacer scroll. Antes cada página (Home, Discover,
+     Artists, Artist, Settings, Playlists) repetía este cálculo a mano,
+     con un "6rem" puesto a ojo como colchón para el mini-player —
+     bastante más de lo que mide en realidad (alto real ~4rem + el aire
+     que ya lo separa de la tab bar, --tabbar-gap). Ese sobrante es
+     justo lo que se veía como un "cuadro negro" vacío al llegar al
+     final del scroll: es el --bg de la página, no ningún elemento de
+     más, solo demasiado colchón reservado. Un solo token acá,
+     calculado contra la altura real del mini-player en vez de un
+     número inventado. */
+  --page-bottom-clearance: calc(
+    var(--tabbar-h) + var(--tabbar-bottom-gap) + var(--tabbar-gap) + 4rem
+  );
+
+  /* --- Layout escritorio ---
+     Ancho fijo del Sidebar (ver Sidebar.css), usado por todas las
+     páginas para descontar su espacio con padding-left en >=900px. */
+  --sidebar-w: 240px;
+
+  /* Inset superior "real" de cada página: normalmente es solo el notch/
+     Dynamic Island de un celular (env(safe-area-inset-top)), pero en una
+     PWA de escritorio con Window Controls Overlay activo (ver
+     useWindowControlsOverlay.ts) hay ADEMÁS una franja arrastrable del
+     titlebar nativo flotando fija sobre TODO el contenido — Sidebar.css
+     ya la descontaba para su propia columna, pero el resto de las
+     páginas (Home, Discover, Playlists, Artistas, Ajustes) seguían
+     calculando su padding superior solo contra el safe-area, así que el
+     titlebar tapaba (y volvía imposible de tocar, por el app-region:drag)
+     los primeros ~33px de sus headers — el buscador y el avatar del Home,
+     por ejemplo. Un solo token: cada página usa este valor en vez de
+     env(safe-area-inset-top) directo, y automáticamente queda corregido
+     en escritorio sin duplicar la lógica de detección en cada archivo. */
+  --page-top-inset: env(safe-area-inset-top);
+
+  /* --- Vidrio líquido (barras flotantes: tab bar, mini-player, tarjeta
+     de instalación) ---
+     Un solo lugar para el "grosor" del cristal — blur + saturate suben
+     juntos o no suben, porque desincronizados se nota (el saturate sin
+     blur suficiente se ve como un filtro de Instagram, no como vidrio).
+     El highlight superior imita el filo de luz que Apple usa en iOS 26 /
+     "Liquid Glass": una línea muy fina, casi blanca, solo en el borde de
+     arriba — es lo que distingue un panel de vidrio de un simple fondo
+     semitransparente oscuro. */
+  /* --- Vidrio líquido (barras flotantes: tab bar, mini-player, tarjeta
+     de instalación) ---
+     Un solo lugar para el "grosor" del cristal — blur + saturate suben
+     juntos o no suben, porque desincronizados se nota (el saturate sin
+     blur suficiente se ve como un filtro de Instagram, no como vidrio).
+     El highlight superior imita el filo de luz que Apple usa en iOS 26 /
+     "Liquid Glass": una línea muy fina, casi blanca, solo en el borde de
+     arriba — es lo que distingue un panel de vidrio de un simple fondo
+     semitransparente oscuro.
+
+     --glass-clarity es el multiplicador de OPACIDAD del vidrio (no del
+     blur): 1 = valores de referencia de acá abajo. Existe porque en
+     WWDC 2026 Apple le agregó a iOS 26/"Liquid Glass" un control público
+     de "Claro ↔ Tintado" (Configuración > Pantalla) después de que la
+     versión original recibiera quejas de legibilidad por ser demasiado
+     transparente — iOS 27 además bajó la transparencia por defecto. Acá
+     se replica esa misma idea en vez del valor fijo de siempre: cada
+     superficie de vidrio multiplica SU PROPIA alfa por esta variable en
+     vez de tener un valor absoluto, así que subir/bajar --glass-clarity
+     mueve TODAS las superficies de vidrio a la vez y cada una mantiene
+     su densidad relativa (la tab bar sigue siendo más transparente que
+     el mini-player, solo que las dos escalan juntas). Ver Configuración
+     > Apariencia > "Claridad del vidrio" (glassClarity.ts) y el
+     min(1, calc(...)) en cada rgba() que lo usa — clamp obligatorio
+     porque "Tintado" multiplica por más de 1 y rgba() no acepta alfa
+     fuera de [0,1]. */
+  --glass-clarity: 1;
+  --glass-blur: blur(26px) saturate(190%);
+  --glass-bg: rgba(16, 15, 22, min(1, calc(0.66 * var(--glass-clarity))));
+  --glass-border: rgba(255, 255, 255, min(1, calc(0.14 * var(--glass-clarity))));
+  --glass-highlight: rgba(255, 255, 255, min(1, calc(0.22 * var(--glass-clarity))));
+  /* Chips de vidrio flotantes (botones atrás/favorito del player): vidrio
+     oscuro sobre temas oscuros, blanco sobre claros — lo recalcula cada
+     tema (ver --chip-bg en themes.js). */
+  --chip-bg: rgba(30, 30, 34, min(1, calc(0.45 * var(--glass-clarity))));
+}
+
+/* --- Claridad del vidrio (Configuración > Apariencia) ---
+   Tres niveles, mismo espíritu que el slider "Claro/Tintado" que Apple
+   sumó en iOS 27 para Liquid Glass: "Claro" deja ver más lo de atrás
+   (multiplica la opacidad hacia abajo), "Tintado" prioriza legibilidad
+   subiendo la opacidad — útil en pantallas muy brillantes o para quien
+   encuentra el vidrio por defecto difícil de leer. Sin atributo (o
+   "balanced") usa los valores de referencia de tokens.css (clarity: 1). */
+[data-glass='clear'] {
+  --glass-clarity: 0.7;
+}
+[data-glass='tinted'] {
+  --glass-clarity: 1.45;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  /* El modo de accesibilidad del sistema ya gana — no tiene sentido
+     que "Claro" lo pelee y deje el vidrio ilegible para alguien que
+     pidió justo lo contrario a nivel OS. */
+  :root {
+    --glass-clarity: 1.45;
+  }
+}
+
+/* --- Temas de acento (ver src/lib/themes.js y Configuración) ---
+   Se aplican como data-theme="id" en <html>. "default-dark" usa los
+   valores base de arriba, así que no necesita override. */
+[data-theme='rose'] {
+  --accent: #fb7185;
+  --accent-strong: #fda4af;
+  --accent-dim: rgba(251, 113, 133, 0.16);
+  --accent-glow: rgba(251, 113, 133, 0.55);
+}
+
+[data-theme='azure'] {
+  --accent: #38bdf8;
+  --accent-strong: #7dd3fc;
+  --accent-dim: rgba(56, 189, 248, 0.16);
+  --accent-glow: rgba(56, 189, 248, 0.55);
+}
+
+[data-theme='emerald'] {
+  --accent: #34d399;
+  --accent-strong: #6ee7b7;
+  --accent-dim: rgba(52, 211, 153, 0.16);
+  --accent-glow: rgba(52, 211, 153, 0.55);
+}
+
+[data-theme='amber'] {
+  --accent: #fbbf24;
+  --accent-strong: #fcd34d;
+  --accent-dim: rgba(251, 191, 36, 0.16);
+  --accent-glow: rgba(251, 191, 36, 0.55);
+}
+
+[data-theme='mono'] {
+  --accent: #e5e5ea;
+  --accent-strong: #ffffff;
+  --accent-dim: rgba(229, 229, 234, 0.14);
+  --accent-glow: rgba(229, 229, 234, 0.4);
+}
+
+/* --- Landscape móvil ---
+   Celular acostado (no tablet/desktop, que ya tienen su propio layout
+   vía min-width:900px): achica la tab bar y el hueco entre píldoras
+   flotantes, porque en una pantalla de ~375-430px de alto la barra +
+   el mini-player + sus márgenes se comían casi un tercio de la
+   pantalla. Como --tabbar-h y --tabbar-gap ya son la única fuente de
+   verdad para el padding inferior de TODAS las páginas (ver comentario
+   arriba) y para el offset del mini-player, un solo override acá
+   recalcula todo el layout sin tocar archivo por archivo. */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --tabbar-h: 46px;
+    --tabbar-gap: 0.5rem;
+    --tabbar-bottom-gap: 0.25rem;
+  }
+}
+
+/* --- PWA de escritorio con Window Controls Overlay ---
+   Mientras la franja arrastrable del titlebar está activa (ver
+   useWindowControlsOverlay.ts, que agrega esta clase a <html>), el inset
+   superior real de cada página pasa a ser la altura de esa franja — casi
+   siempre mayor a cualquier safe-area-inset-top de escritorio (que es 0),
+   así que directamente la reemplaza en vez de sumarse. */
+html.pwa-wco {
+  --page-top-inset: var(--wco-height, 33px);
+}

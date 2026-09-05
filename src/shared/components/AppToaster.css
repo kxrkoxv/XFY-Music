@@ -1,0 +1,166 @@
+/* ============================================================
+   Toaster (sonner) — antes usaba `richColors` (fondos sólidos
+   saturados por tipo, radios cuadrados por defecto): quedaba como un
+   elemento ajeno al resto de la app, que usa vidrio líquido oscuro con
+   tinte sutil en TODO lo flotante (tab bar, mini-player, tarjetas de
+   instalar/notificaciones — ver NotificationPermissionPrompt.css).
+   Acá el toast pasa a ser una tarjeta de vidrio más, con el tipo
+   (éxito/error/etc.) marcado solo en el ícono, no en todo el fondo —
+   mismo criterio minimalista que el resto del diseño.
+
+   Todo se apoya en var(--token) — nunca colores fijos — para que
+   cualquier tema (incluidos los claros y los personalizados del
+   usuario, ver features/settings/lib/themes.ts) recoloree los toasts
+   sin tocar este archivo.
+   ============================================================ */
+
+[data-sonner-toaster] {
+  --normal-bg: var(--glass-bg);
+  --normal-border: var(--glass-border);
+  --normal-text: var(--text-primary);
+  --success-bg: var(--glass-bg);
+  --success-border: var(--glass-border);
+  --success-text: var(--text-primary);
+  --error-bg: var(--glass-bg);
+  --error-border: var(--glass-border);
+  --error-text: var(--text-primary);
+  --warning-bg: var(--glass-bg);
+  --warning-border: var(--glass-border);
+  --warning-text: var(--text-primary);
+  --info-bg: var(--glass-bg);
+  --info-border: var(--glass-border);
+  --info-text: var(--text-primary);
+  --border-radius: var(--radius-lg);
+  --width: 22rem;
+  font-family: var(--font-sans);
+}
+
+[data-sonner-toast] {
+  padding: 0.85rem 1rem !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-sonner-toast] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--bg-elevated) !important;
+  }
+}
+
+/* Ícono: placa redondeada con tinte propio (mismo lenguaje que
+   .notif-prompt-icon), en vez del glifo de color sólido de sonner. */
+[data-sonner-toast] [data-icon] {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  margin-right: 0.2rem;
+}
+
+[data-sonner-toast] [data-icon] svg {
+  width: 14px;
+  height: 14px;
+}
+
+[data-sonner-toast][data-type='success'] [data-icon] {
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+}
+[data-sonner-toast][data-type='success'] [data-icon] svg {
+  color: var(--success);
+}
+
+[data-sonner-toast][data-type='error'] [data-icon] {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+[data-sonner-toast][data-type='error'] [data-icon] svg {
+  color: var(--danger);
+}
+
+[data-sonner-toast][data-type='warning'] [data-icon] {
+  background: color-mix(in srgb, #fbbf24 18%, transparent);
+}
+[data-sonner-toast][data-type='warning'] [data-icon] svg {
+  color: #fbbf24;
+}
+
+[data-sonner-toast][data-type='info'] [data-icon],
+[data-sonner-toast][data-type='loading'] [data-icon] {
+  background: var(--accent-dim);
+}
+[data-sonner-toast][data-type='info'] [data-icon] svg,
+[data-sonner-toast][data-type='loading'] [data-icon] svg {
+  color: var(--accent-strong);
+}
+
+/* El ícono de loading es un lucide normal (reemplaza el spinner propio de
+   sonner), así que necesita su propia animación de giro. */
+.app-toast-spin {
+  animation: app-toast-spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-toast-spin {
+    animation: none;
+  }
+}
+@keyframes app-toast-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+[data-sonner-toast] [data-title] {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+[data-sonner-toast] [data-description] {
+  color: var(--text-secondary) !important;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+/* Botones de acción/cancelar: mismas píldoras que el resto de la app
+   (.notif-prompt-btn, botones de Configuración), no el rectángulo
+   default de sonner. */
+[data-sonner-toast] [data-button] {
+  border-radius: var(--radius-full) !important;
+  font-weight: 700;
+  font-size: 0.76rem;
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  transition: background var(--dur-sm) var(--ease-out);
+}
+[data-sonner-toast] [data-button]:hover {
+  background: var(--accent-strong) !important;
+}
+
+[data-sonner-toast] [data-cancel] {
+  border-radius: var(--radius-full) !important;
+  background: var(--surface) !important;
+  color: var(--text-secondary) !important;
+  border: none !important;
+}
+[data-sonner-toast] [data-cancel]:hover {
+  background: var(--surface-hover) !important;
+}
+
+[data-sonner-toast] [data-close-button] {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-tertiary) !important;
+}
+[data-sonner-toast] [data-close-button]:hover {
+  background: var(--surface-hover) !important;
+  color: var(--text-primary) !important;
+}

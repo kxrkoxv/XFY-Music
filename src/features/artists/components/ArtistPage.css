@@ -1,0 +1,600 @@
+.artist-page {
+  min-height: 100dvh;
+  padding: calc(1.5rem + var(--page-top-inset)) 1.5rem 2.5rem;
+  background: radial-gradient(circle at top, var(--accent-12), transparent 48%);
+}
+
+@media (min-width: 900px) {
+  /* Mismo criterio que el resto de la app: el Sidebar fijo se descuenta
+     con padding-left, y el contenido tiene un techo de ancho (max-width)
+     para no estirarse de punta a punta en monitores grandes y dejar un
+     vacío enorme a la derecha. */
+  .artist-page {
+    max-width: 1400px;
+    padding-left: calc(240px + clamp(1.5rem, 4vw, 3rem));
+    padding-right: clamp(1.5rem, 4vw, 3rem);
+  }
+}
+
+@media (max-width: 899px) {
+  .artist-page {
+    /* ArtistPage no tiene Sidebar (no aplica margen desktop), pero sí
+       necesita el mismo respiro para tab bar + mini-player abajo; antes
+       terminaba en un padding-bottom fijo de 2.5rem, así que el final
+       de la lista de canciones quedaba tapado por ambos. */
+    padding-bottom: calc(var(--page-bottom-clearance) + env(safe-area-inset-bottom));
+  }
+}
+
+/* El botón "Volver" usa .page-back — ver global.css para el motivo de
+   por qué vive ahí y no acá. */
+
+.artist-hero {
+  position: relative;
+  padding: 1.75rem;
+  border-radius: var(--radius-xl);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  overflow: hidden;
+  /* Aísla el repintado del blur de fondo (::before) del resto de la
+     página: sin esto, cada frame de la animación de transición de
+     página (App.jsx anima scale+opacity del contenedor que envuelve
+     TODO, hero incluido) obligaba al navegador a recalcular el blur
+     de fondo desde cero en cada frame — carísimo en un celular, y es
+     lo que se sentía como "vibrar"/trabarse al entrar a esta página. */
+  contain: paint;
+}
+
+/* Retrato del artista, agrandado y difuminado, de fondo detrás de todo
+   el hero — antes la tarjeta era un rectángulo gris plano con la
+   miniatura chica al costado; esto le da profundidad sin competir con
+   el texto. El blur quedó bastante más liviano que la primera versión
+   (radio menor, sin sobredimensionar el área) porque un filter: blur()
+   grande es de lo más pesado que se le puede pedir a una GPU de
+   celular, sobre todo si además hay una animación corriendo encima. */
+.artist-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--artist-hero-bg, none);
+  background-size: cover;
+  background-position: center 20%;
+  filter: blur(22px) saturate(140%) brightness(0.5);
+  transform: scale(1.08) translateZ(0);
+  will-change: transform;
+  z-index: 0;
+}
+
+@media (max-width: 700px) {
+  .artist-hero::before {
+    /* En celular el margen es menor: bajamos el radio de blur bastante
+       más — se sigue viendo bien porque la tarjeta ya es más chica, y
+       es la diferencia entre 60fps y una animación que tartamudea. */
+    filter: blur(12px) saturate(130%) brightness(0.45);
+  }
+}
+
+.artist-hero::after {
+  /* Scrim adicional para que el texto siempre tenga contraste
+     suficiente, sea cual sea el color dominante de la foto de fondo.
+     Mezcla el acento (fijo, o el extraído de la foto cuando ArtistPage.jsx
+     lo resuelve) sobre el scrim oscuro en vez de un negro plano — así el
+     color de la portada "tiñe" el ambiente sin taparla, en vez de
+     reemplazarla por un bloque de color sin textura. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--accent) 30%, rgba(6, 6, 10, 0.8)),
+    color-mix(in srgb, var(--accent) 10%, rgba(6, 6, 10, 0.4))
+  );
+  z-index: 0;
+  transition: background var(--dur-lg) var(--ease-out);
+}
+
+.artist-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.artist-hero-art {
+  width: 132px;
+  height: 132px;
+  flex-shrink: 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.artist-hero-art img,
+.artist-hero-art .cached-img-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artist-hero-details {
+  max-width: 720px;
+}
+
+/* --- Acciones del hero: Reproducir + aleatorio --- */
+.artist-hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.btn-hero-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.35rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.btn-hero-play:hover {
+  background: var(--accent-strong, var(--accent));
+}
+
+.btn-hero-play:active {
+  transform: scale(0.96);
+}
+
+/* Botón secundario (aleatorio): ghost pill — mismo lenguaje que
+   .artist-bio-toggle, para que no compita visualmente con el primario. */
+.btn-hero-shuffle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.btn-hero-shuffle:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.btn-hero-shuffle:active {
+  transform: scale(0.94);
+}
+
+.artist-info-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 1rem 0;
+}
+
+.artist-info-meta span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.artist-bio-card {
+  position: relative;
+  margin-top: 1.1rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  max-width: 760px;
+}
+
+.artist-bio {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  font-size: 0.95rem;
+}
+
+/* Estado vacío: mismo contenedor visual que la tarjeta de bio real, pero
+   sin padding extra de sobra ni el footer con botones — solo una línea
+   discreta en vez del hueco en blanco que quedaba antes cuando ninguna
+   fuente (Wikipedia, AudioDB) tenía datos de este artista. */
+.artist-bio-card--empty {
+  max-width: 520px;
+}
+
+.artist-bio--muted {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* Animación real de "Leer más": -webkit-line-clamp no se puede animar
+   (es un corte binario, sin estado intermedio), así que en vez de eso
+   se anima max-height sobre el contenedor. Colapsado, el techo alcanza
+   justo para ~4 líneas a este tamaño/interlineado. Expandido, el techo
+   ES la altura real medida del texto (--bio-h, seteada por JS en
+   ArtistPage.jsx con ResizeObserver) — con el viejo techo fijo de 60rem
+   la expansión quemaba toda la curva en el primer 15% (se veía
+   instantánea) y el colapso arrancaba recién al final: asimétricos y
+   ambos mal. Con el valor exacto, ambas direcciones duran lo mismo y
+   se leen igual de suaves. El fallback 60rem cubre el frame previo a la
+   primera medición. */
+.artist-bio-wrap {
+  position: relative;
+  overflow: hidden;
+  transition: max-height var(--dur-lg) var(--ease-out);
+}
+
+.artist-bio-wrap.is-collapsed {
+  max-height: 6.8rem;
+}
+
+.artist-bio-wrap.is-expanded {
+  max-height: var(--bio-h, 60rem);
+}
+
+/* Fundido al fondo de la tarjeta, solo mientras está colapsada — avisa
+   que hay más texto debajo en vez de cortarlo en seco a mitad de
+   palabra. Se desvanece con la propia transición de opacidad al
+   expandir, en vez de desaparecer de golpe. */
+.artist-bio-wrap.is-collapsed::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.2rem;
+  background: linear-gradient(to bottom, transparent, rgba(15, 14, 20, 0.92));
+  pointer-events: none;
+}
+
+.artist-bio-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.artist-bio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.78rem;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.artist-bio-toggle:hover {
+  background: var(--surface-active);
+}
+
+.artist-bio-toggle:active {
+  transform: scale(0.96);
+}
+
+.artist-bio-chevron {
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+
+.artist-bio-chevron.flipped {
+  transform: rotate(180deg);
+}
+
+.artist-bio-translated {
+  color: var(--text-tertiary);
+  font-size: 0.72rem;
+  font-style: italic;
+}
+
+.artist-bio-link {
+  color: var(--accent-strong);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.artist-bio-link:hover {
+  text-decoration: underline;
+}
+
+.artist-songs-section {
+  margin-top: 1rem;
+}
+
+.artist-song-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.artist-song-card {
+  text-align: left;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.artist-song-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.artist-song-info {
+  min-height: 4rem;
+}
+
+.artist-song-card .song-card-title,
+.artist-song-card .song-card-artist {
+  margin: 0;
+}
+
+.artist-song-card .song-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.artist-song-card .song-card-artist {
+  color: var(--text-tertiary);
+  margin-top: 0.35rem;
+}
+
+.artist-song-card--muted {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.artist-song-art {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.artist-song-card--muted .artist-song-info {
+  min-height: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.artist-song-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+/* --- Featured release ("Último lanzamiento") --- */
+/* Misma anatomía que .release-card pero a escala mayor: superficie más
+   grande = material más grueso (sombra más profunda). La jerarquía viene
+   del tamaño, no de un layout horizontal distinto que chocaba con las
+   cards de discografía. */
+.release-card.featured {
+  width: 210px;
+}
+
+.release-card.featured .release-card-art {
+  width: 210px;
+  height: 210px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55), 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.release-card.featured .release-card-title {
+  font-size: 1.05rem;
+}
+
+/* Botón "Reproducir álbum" (AlbumPage) — antes sin estilos: botón crudo
+   del navegador. Mismo lenguaje que .btn-hero-play, a escala menor. */
+.playlist-play-all.album-play-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out),
+    opacity var(--dur-sm) var(--ease-out);
+}
+
+.playlist-play-all.album-play-all:hover {
+  background: var(--accent-strong, var(--accent));
+}
+
+.playlist-play-all.album-play-all:active {
+  transform: scale(0.96);
+}
+
+.playlist-play-all.album-play-all:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 480px) {
+  .release-card.featured,
+  .release-card.featured .release-card-art {
+    width: 170px;
+    height: auto;
+  }
+
+  .release-card.featured .release-card-art {
+    height: 170px;
+  }
+}
+
+/* --- Filas de lanzamientos (estilo Apple Music) --- */
+/* Cards verticales en scroll horizontal: arte cuadrado arriba, título
+   debajo. Reemplaza a la grilla auto-fit que estiraba cada card al ancho
+   sobrante y dejaba filas de 2-4 elementos flotando desalineados. */
+.release-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+}
+
+.release-row::-webkit-scrollbar {
+  display: none;
+}
+
+.release-card {
+  width: 150px;
+  flex-shrink: 0;
+  cursor: pointer;
+  /* Feedback en el press, no en el release (Designing Fluid Interfaces):
+     la card responde al instante al tocar. */
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.release-card:active {
+  transform: scale(0.97);
+}
+
+.release-card-art {
+  width: 150px;
+  height: 150px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.release-card-art img,
+.release-card-art .cached-img-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.release-card-title {
+  margin: 0.55rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.release-card-sub {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 480px) {
+  .release-card,
+  .release-card-art {
+    width: 124px;
+    height: auto;
+  }
+
+  .release-card-art {
+    height: 124px;
+  }
+}
+
+@media (max-width: 700px) {
+  .artist-page {
+    padding: calc(1rem + var(--page-top-inset)) 1rem 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .artist-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    padding: 1.25rem;
+  }
+  .artist-hero-art {
+    width: 96px;
+    height: 96px;
+  }
+  .artist-bio-footer {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+}
+
+/* --- Skeletons: bio y grilla de canciones cargando --- */
+@keyframes artist-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.artist-bio-skeleton-line,
+.artist-skeleton-line,
+.artist-song-art--skeleton,
+.release-card-art--skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: artist-shimmer 1.4s infinite linear;
+  border-radius: var(--radius-sm);
+}
+.artist-bio-skeleton-line {
+  height: 0.95rem;
+  margin-bottom: 0.6rem;
+}
+.artist-bio-skeleton-line:last-child { margin-bottom: 0; }
+.artist-skeleton-line {
+  height: 0.85rem;
+}
+.artist-song-card--skeleton { pointer-events: none; }
+.artist-song-art--skeleton {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.release-card--skeleton { pointer-events: none; }
+.release-card-art--skeleton {
+  width: 150px;
+  height: 150px;
+  border-radius: var(--radius-md); /* pisa el --radius-sm del shimmer compartido para matchear .release-card-art real */
+}
+@media (max-width: 480px) {
+  .release-card-art--skeleton {
+    width: 124px;
+    height: 124px;
+  }
+}

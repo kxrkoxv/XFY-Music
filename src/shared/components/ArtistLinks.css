@@ -1,0 +1,25 @@
+.artist-links {
+  /* Hereda tipografía/color de la clase que se le pase (song-card-artist,
+     pl-song-artist, etc.) — este archivo solo agrega la interacción por
+     nombre individual, no redefine tamaño/color. */
+  display: inline;
+}
+
+.artist-links-name {
+  cursor: pointer;
+  transition: color var(--dur-sm) ease;
+}
+
+.artist-links-name:hover,
+.artist-links-name:focus-visible {
+  color: var(--text-primary, #fff);
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 2px;
+  outline: none;
+}
+
+.artist-links-sep {
+  /* Los separadores nunca son clickeables ni cambian de color al pasar el mouse. */
+  pointer-events: none;
+}

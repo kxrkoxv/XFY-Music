@@ -1,0 +1,27 @@
+{
+  "//": "Único config de lenguaje para el editor + `npm run typecheck`. Los aliases deben espejar vite.config.ts. Todo src/ es TypeScript strict; los .js de api/ se chequean con tsconfig.node.json.",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable", "WebWorker"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    /* Nivel profesional: indexed access devuelve T | undefined (mata la
+       clase "Cannot read properties of undefined" en la compilación) y
+       los imports de tipos DEBEN declararse con `import type`. */
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@features/*": ["./src/features/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@services/*": ["./src/services/*"]
+    }
+  },
+  "include": ["src"]
+}

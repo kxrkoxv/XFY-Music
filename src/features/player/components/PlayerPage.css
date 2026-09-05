@@ -1,0 +1,956 @@
+.player-page {
+  position: relative;
+  min-height: 100dvh;
+  /* Solo se recorta el eje horizontal (fondo/blur que se pasa de los
+     bordes) — el vertical queda con scroll de respaldo. Antes era
+     "hidden" en los dos ejes: en landscape en un celular (poca altura)
+     el contenido de abajo (volumen, letras) quedaba recortado y
+     imposible de alcanzar, no solo feo sino inutilizable. */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.player-bg {
+  position: fixed;
+  inset: -10%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(50px) saturate(160%) brightness(0.5);
+  transform: scale(1.15);
+  z-index: 0;
+}
+
+.player-bg-scrim {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 30% 10%, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.65) 75%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Video de fondo local por canción — mismo truco de "cover" a pantalla
+   completa que .player-bg, pero con un <video> real en vez de un blur
+   estático. Vive en el mismo z-index que el resto del fondo: al ir
+   DESPUÉS en el DOM (ver PlayerPage.jsx) pinta encima del warp de Kawarp
+   o del iframe de YouTube cuando existe, sin necesidad de pelear con
+   z-index. .player-bg-scrim sigue yendo arriba de todo esto para que el
+   texto del reproductor siga siendo legible sobre cualquier video. */
+.player-local-video-bg {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* El IFrame de YouTube (#yt-engine-mount) ya NO se muestra como fondo a
+   pantalla completa: era la fuente del "salto" visual que se notaba justo
+   cuando el motor pasaba de IFrame a audio real. Ahora se queda siempre
+   oculto en 1x1px (ver global.css) sin importar la pantalla — es pura
+   fuente de audio, nunca de imagen. El fondo del player usa siempre
+   MotionArt o DynamicBackground, sin importar qué motor esté sonando. */
+
+.player-content {
+  position: relative;
+  z-index: 3;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: calc(1.5rem + var(--page-top-inset)) 1.5rem calc(3rem + env(safe-area-inset-bottom));
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-back {
+  position: fixed;
+  top: calc(1.25rem + var(--page-top-inset));
+  left: calc(1.25rem + env(safe-area-inset-left));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--chip-bg);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  color: var(--text-primary);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-sm) var(--ease-out), box-shadow var(--dur-sm) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-back:hover {
+    background: rgba(40, 40, 46, 0.6);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .player-back {
+    background: var(--bg-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+.player-main {
+  margin-top: 2rem;
+}
+
+.player-art-block {
+  position: relative;
+  text-align: center;
+}
+
+.player-art-crossfade {
+  position: relative;
+  width: min(320px, 78vw);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto 1.25rem;
+  border-radius: var(--radius-lg);
+}
+
+.player-art-wrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.player-art {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  /* Sombra + resplandor tenue del color dominante de la portada (mismo
+     --accent-glow que usa el fondo dinámico) — le da más presencia a la
+     carátula sin salirse de un tratamiento minimalista. */
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), 0 0 60px -18px var(--accent-glow);
+  transition: box-shadow 1.2s ease-out;
+  /* The position absolute allows crossfading the wrapper without jumping */
+}
+
+/* Pop grande de corazón al doble-tap/doble-click (ver handleArtTap en
+   PlayerPage.jsx) — se había quedado sin estilos: sin esto el elemento
+   quedaba en flujo normal en vez de flotar centrado sobre la foto. */
+.player-art-heart-pop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 2;
+  filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.45));
+}
+
+/* El ícono escala con el tamaño real de la foto en cualquier breakpoint
+   (el % se resuelve contra .player-art-heart-pop, que siempre mide lo
+   mismo que .player-art-crossfade) en vez de quedar fijo en 72px y verse
+   gigante en landscape con la carátula chica. */
+.player-art-heart-pop svg {
+  width: clamp(28px, 42%, 72px);
+  height: clamp(28px, 42%, 72px);
+}
+
+.player-track-info h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin: 0 0 0.3rem;
+}
+
+.player-track-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.player-artist-link {
+  display: inline-block;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+/* Con múltiples artistas colaboradores, cada nombre es clickeable por
+   separado (ver ArtistLinks.css) — el hover/color ya no se aplica a todo
+   el bloque, solo al nombre individual sobre el que está el cursor. */
+@media (hover: hover) and (pointer: fine) {
+  .player-artist-link .artist-links-name:hover {
+    color: var(--accent-strong);
+    text-decoration: underline;
+  }
+}
+
+.player-artist-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.8rem;
+}
+
+.player-artist-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-tertiary);
+  font-size: 0.76rem;
+}
+
+.player-artist-meta-placeholder {
+  margin-top: 0.85rem;
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.player-fav-btn {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 3;
+  background: var(--chip-bg);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  transition: transform var(--dur-press) var(--ease-out), background var(--dur-sm) var(--ease-out);
+}
+
+.player-fav-btn:active {
+  transform: scale(0.9);
+}
+
+/* --- Barra de progreso (range input custom) --- */
+.player-progress-block {
+  margin-top: 1.75rem;
+}
+
+.player-progress,
+.player-volume-row input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-color: rgba(255, 255, 255, 0.12);
+  /* El fill es un segundo layer de background con ancho fijo (--progress);
+     background-size SÍ es una propiedad animable por CSS (a diferencia de
+     transicionar "background" con gradientes de distinto stop), así el
+     avance se ve fluido entre cada tick de currentTime en vez de saltar. */
+  background-image: linear-gradient(to right, var(--accent-strong), var(--accent-strong));
+  background-repeat: no-repeat;
+  background-size: var(--progress, 0%) 100%;
+  cursor: pointer;
+  transition: background-size var(--dur-md) linear, height var(--dur-sm) var(--ease-out), background-color var(--dur-lg) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-progress:hover,
+  .player-volume-row input[type='range']:hover {
+    height: 6px;
+  }
+}
+
+.player-progress::-webkit-slider-thumb,
+.player-volume-row input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-press) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .player-progress:hover::-webkit-slider-thumb,
+  .player-volume-row input[type='range']:hover::-webkit-slider-thumb {
+    transform: scale(1.15);
+    box-shadow: 0 2px 10px var(--accent-glow);
+  }
+}
+
+.player-progress:active::-webkit-slider-thumb,
+.player-volume-row input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(1.3);
+}
+
+.player-time-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 0.4rem;
+}
+
+/* --- Controles --- */
+.player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.player-control-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: transform var(--dur-press) var(--ease-out), color var(--dur-sm) var(--ease-out);
+}
+
+.player-control-btn:active {
+  transform: scale(0.9);
+}
+
+.player-control-btn.active {
+  color: var(--accent-strong);
+}
+
+.player-shuffle-smart-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+.player-shuffle-smart-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  color: var(--accent-strong);
+  filter: drop-shadow(0 0 2px var(--bg-elevated, #000));
+}
+
+.player-play-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 28px var(--accent-glow);
+  transition: transform var(--dur-press) var(--ease-out);
+}
+
+.player-play-btn:active {
+  transform: scale(0.94);
+}
+
+/* Fila contenedora: volumen (se oculta en táctil, ver más abajo) + botón
+   Connect (SIEMPRE visible — en táctil pasa a ocupar toda la fila él solo,
+   centrado, en vez de quedar huérfano donde estaba el slider). */
+.player-volume-connect-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 240px;
+  margin: 1.5rem auto 0;
+  color: var(--text-tertiary);
+}
+
+.player-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+/* En iOS, HTMLMediaElement.volume no es programable (el nivel de audio
+   queda bajo el control físico del dispositivo) y otros navegadores
+   móviles heredan la misma convención de UX (ver YouTube, Spotify).
+   Mostrar un control que no hace nada confunde más de lo que ayuda, así
+   que en dispositivos táctiles directamente no se renderiza — el botón
+   Connect (hermano, no hijo, de esta fila) sigue de pie igual. */
+@media (hover: none), (pointer: coarse) {
+  .player-volume-row {
+    display: none;
+  }
+
+  .player-volume-connect-row {
+    justify-content: center;
+  }
+}
+
+.player-volume-row input[type='range'] {
+  flex: 1;
+}
+
+.player-bg-video-btn {
+  flex-shrink: 0;
+}
+
+.player-bg-video-btn.active {
+  color: var(--accent, #8b5cf6);
+}
+
+/* --- Letras (karaoke) --- */
+/* Vertical por defecto: .lyrics-body es un motion.div que anima su altura
+   a 'auto' para el reveal/collapse (ver PlayerPage.jsx) y NO es flex — así
+   que el flex:1 de acá abajo no tenía ningún ancestro con tamaño definido
+   del cual tomarlo, .lyrics-panel crecía a su contenido completo (todas
+   las líneas) y overflow-y:auto nunca se activaba: nada se centraba nunca,
+   el auto-scroll y el foco con blur de useLyricsAutoScroll/LyricLine no
+   tenían dónde scrollear, y la única forma de "seguir" el karaoke
+   brillando era scrollear la página entera a mano. El breakpoint de
+   landscape sí acota la altura — acá se le da esa misma ventana acotada
+   al modo vertical normal: una ventana tipo Apple Music, con la línea
+   activa centrada y brillando y el resto difuminándose hacia los bordes. */
+.lyrics-panel {
+  margin-top: 2.5rem;
+  flex: 1;
+  height: min(54vh, 480px);
+  min-height: 220px;
+  overflow-y: auto;
+  padding: 1rem 0.5rem;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 8%, black 92%, transparent);
+}
+
+.lyrics-line {
+  /* El margen vertical vive en .lyrics-line-group (ver spicyLyrics.css) —
+     acá se pone en 0 explícito para pisar el `margin-block: 1em` que el
+     navegador le pone por default a un <p>, que si no quedaría SUMADO al
+     margen del grupo (doble espaciado, y encima dependiente del
+     font-size de cada variante). */
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.34;
+  letter-spacing: 0.005em;
+  text-align: center;
+  cursor: pointer;
+
+  /* Distancia a la activa (0-4) — motion.js la lee para animar */
+  --d: var(--distance, 2);
+
+  /* Letras NO activas: color simple, SIN background-clip:text.
+     Combinar blur()+scale()+background-clip:text+will-change en MUCHOS
+     elementos simultáneos es exactamente lo que dispara el bug de
+     composición de Chrome que produce el texto fantasma duplicado.
+     La línea activa sí usa background-clip:text (solo una a la vez). */
+  color: rgba(255, 255, 255, 0.45);
+
+  /* filter/opacity/transform los anima motion desde LyricLine.jsx —
+     no ponemos CSS transition para estas props para que motion tenga
+     control total (transitions CSS y motion animando la misma prop
+     se pisan y producen saltos). */
+  transition: color var(--dur-lg) var(--ease-out);
+}
+
+.lyrics-line.active {
+  color: var(--text-primary);
+  text-shadow: 0 0 28px var(--accent-glow);
+  /* filter/opacity/scale: motion los anima a 0 blur, 1 opacity, 1.06 scale */
+}
+
+/* --- Puntos de silencio instrumental --- */
+.lyrics-break {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0;
+}
+
+.lyrics-break-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  opacity: 0.4;
+  transform: scale(0.8);
+  transition: opacity var(--dur-md) var(--ease-out), transform var(--dur-md) var(--ease-out);
+}
+
+.lyrics-break-dot.lit {
+  background: var(--accent-strong);
+  opacity: 0.7;
+  transform: scale(0.9);
+}
+
+.lyrics-break-dot.pulse {
+  background: var(--accent-strong);
+  opacity: 1;
+  transform: scale(1.2);
+  animation: lyrics-break-breathe 1000ms var(--ease-in-out) infinite alternate;
+}
+
+@keyframes lyrics-break-breathe {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+
+/* --- Header de la sección de letras --- */
+.lyrics-header {
+  position: relative; /* ancla del crossfade popLayout de las variantes internas */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding: 0.5rem 0.6rem 0.5rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background var(--dur-sm) var(--ease-out), border-color var(--dur-sm) var(--ease-out);
+}
+
+/* Variante expandida: ocupa todo el ancho del header para que el
+   space-between funcione igual que antes de envolverla en el crossfade. */
+.lyrics-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Colapsado (letras ocultas): el borde/fondo pasa al botón interno de
+   abajo (que ocupa todo el ancho), así el header en sí no dobla el
+   recuadro. */
+.lyrics-header--collapsed {
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.lyrics-header-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.lyrics-header-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.lyrics-header-actions .player-control-btn {
+  margin: 0;
+  padding: 6px;
+}
+
+/* --- Tarjeta "mostrar letra" (estado colapsado) ---
+   Antes acá solo quedaba un ícono chico y suelto flotando en una fila
+   vacía al pie de la pantalla — ahora ocupa todo el ancho, es clickeable
+   en toda su superficie, y deja claro qué hace en vez de depender solo
+   de un ícono. */
+.lyrics-header-reveal {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  text-align: left;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.lyrics-header-reveal:active {
+  transform: scale(0.99);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lyrics-header-reveal:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+}
+
+.lyrics-header-reveal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent-dim, rgba(139, 92, 246, 0.16));
+  color: var(--accent-strong, #a78bfa);
+  flex-shrink: 0;
+}
+
+.lyrics-header-reveal-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.lyrics-header-reveal-text strong {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lyrics-header-reveal-text small {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+}
+
+.lyrics-header-reveal-chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+
+
+@media (max-width: 480px) {
+  .lyrics-line {
+    font-size: 1rem;
+  }
+}
+
+/* ============================================================
+   Landscape móvil — celular acostado (poca altura, no tablet/desktop).
+   Antes esta pantalla se armaba SOLO en columna: con la altura de un
+   celular en horizontal (~375-430px) el bloque de arte+info+progreso+
+   controles+volumen ya no entraba, y como .player-page recortaba el
+   overflow, el volumen y las letras quedaban directamente inalcanzables
+   en vez de solo verse mal. Acá se parte en dos columnas — arte y
+   controles achicados a la izquierda, letras a la derecha — como hacen
+   Spotify/Apple Music al girar el teléfono, en vez de forzar un scroll
+   largo dentro de una pantalla que se supone es "de una sola vista". */
+@media (max-height: 500px) and (orientation: landscape) {
+  .player-content {
+    display: grid;
+    grid-template-columns: minmax(0, min(360px, 46vw)) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 1.25rem;
+    row-gap: 0;
+    max-width: 100%;
+    height: 100dvh;
+    min-height: 0;
+    padding: calc(2.85rem + var(--page-top-inset)) calc(1.1rem + env(safe-area-inset-right))
+      calc(0.6rem + env(safe-area-inset-bottom)) calc(1.1rem + env(safe-area-inset-left));
+  }
+
+  .player-main {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    margin-top: 0;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .player-art-block {
+    flex-direction: column;
+    text-align: center;
+    gap: 0;
+  }
+
+  .player-art-crossfade {
+    width: min(168px, 38vh);
+    aspect-ratio: 1 / 1;
+    margin: 0 auto 0.5rem;
+  }
+
+  .player-track-info h1 {
+    font-size: 0.9rem;
+  }
+
+  .player-track-info p,
+  .player-artist-link {
+    font-size: 0.7rem;
+  }
+
+  /* Pills de género/lugar/año: en columna angosta con poca altura ocupan
+     dos filas completas (ver captura reportada) y son lo primero que se
+     puede sacrificar sin perder funcionalidad — son decorativas, no
+     controles. Se ocultan acá igual que el volumen se oculta en touch. */
+  .player-artist-meta,
+  .player-artist-meta-placeholder {
+    display: none;
+  }
+
+  /* Antes volvía a un círculo estático debajo de la foto acá — quedaba
+     inconsistente con el resto de los breakpoints, donde el favorito
+     vive flotando sobre la carátula. Se mantiene igual, solo más chico. */
+  .player-fav-btn {
+    top: 0.4rem;
+    right: 0.4rem;
+    width: 30px;
+    height: 30px;
+  }
+
+  .player-progress-block {
+    margin-top: 0.6rem;
+  }
+
+  .player-time-row {
+    margin-top: 0.25rem;
+  }
+
+  .player-controls {
+    margin-top: 0.45rem;
+    gap: 0.65rem;
+  }
+
+  .player-play-btn {
+    width: 42px;
+    height: 42px;
+  }
+
+  .player-volume-row {
+    margin-top: 0.45rem;
+  }
+
+  .lyrics-header {
+    grid-column: 2;
+    grid-row: 1;
+    margin-top: 0;
+  }
+
+  .lyrics-body {
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 0;
+    display: flex;
+    height: auto;
+  }
+
+  .lyrics-panel {
+    margin-top: 0;
+    flex: 1;
+    /* La columna derecha entera es la ventana acotada, así que el panel
+       debe llenarla toda en vez de quedarse en la altura fija pensada para
+       el modo vertical compacto. */
+    height: auto;
+  }
+
+  /* Sin letras disponibles: el reproductor centrado usa todo el ancho
+     en vez de dejar la mitad derecha de la pantalla vacía. */
+  .player-content:not(:has(.lyrics-header)) {
+    grid-template-columns: 1fr;
+    max-width: 340px;
+    margin: 0 auto;
+  }
+
+  .player-content:not(:has(.lyrics-header)) .player-main {
+    grid-row: 1;
+  }
+
+  /* Letras disponibles pero ocultas por el usuario: sin esto quedaba la
+     mitad derecha de la pantalla completamente negra y vacía (ver
+     captura reportada) — mismo criterio que el caso de arriba, pero acá
+     sigue habiendo un header que ubicar debajo del reproductor.
+     Es una CLASE (no :has()) a propósito: el reflujo tiene que dispararse
+     en el mismo frame del toggle, no cuando AnimatePresence desmonta el
+     panel saliente — si no, la salida queda en dos fases (fade quieto y
+     DESPUÉS el viaje) y se siente brusca. El panel saliente queda
+     anclado absoluto por popLayout (ver PlayerPage.jsx), así que no
+     participa del grid durante la salida y no necesita regla acá. */
+  .player-content.lyrics-hidden {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .player-content.lyrics-hidden .player-main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .player-content.lyrics-hidden .lyrics-header {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 0.5rem;
+  }
+
+  /* El panel saliente es un fantasma: fadea sobre el layout que ya se
+     está moviendo — no debe interceptar clicks durante la salida. */
+  .player-content.lyrics-hidden .lyrics-body {
+    pointer-events: none;
+  }
+
+  .player-back {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* Landscape aún más bajo (celulares chicos, ~360-390px de alto en
+   horizontal): con lo anterior el bloque izquierdo ya entra casi siempre,
+   pero en estos altos extremos se ajusta un poco más para no depender del
+   scroll de .player-main para ver los controles de reproducción. */
+@media (max-height: 400px) and (orientation: landscape) {
+  .player-content {
+    padding-top: calc(2.35rem + var(--page-top-inset));
+  }
+
+  .player-art-crossfade {
+    width: min(120px, 30vh);
+    margin-bottom: 0.35rem;
+  }
+
+  .player-track-info p,
+  .player-artist-link {
+    display: none;
+  }
+
+  .player-fav-btn {
+    top: 0.3rem;
+    right: 0.3rem;
+    width: 26px;
+    height: 26px;
+  }
+
+  .player-progress-block {
+    margin-top: 0.3rem;
+  }
+
+  .player-controls {
+    margin-top: 0.3rem;
+    gap: 0.5rem;
+  }
+
+  .player-play-btn {
+    width: 38px;
+    height: 38px;
+  }
+}
+/* ============================================================
+   Chip "preparando audio" — estado IFrame mientras el server
+   extrae y sube al blob compartido. Pill de vidrio (mismo lenguaje
+   Liquid Glass que el resto del player) con un spinner real en vez
+   del punto pulsante de antes — ahora también deja claro POR QUÉ
+   está sonando así (subtítulo), no solo que "algo está pasando".
+   ============================================================ */
+.player-prepare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  color: var(--text-primary);
+  background: linear-gradient(180deg, var(--glass-highlight, rgba(255, 255, 255, 0.14)) 0%, var(--glass-bg, rgba(255, 255, 255, 0.08)) 60%);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.14));
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 8px 20px -12px rgba(0, 0, 0, 0.55);
+  backdrop-filter: var(--glass-blur, blur(20px) saturate(180%));
+  -webkit-backdrop-filter: var(--glass-blur, blur(20px) saturate(180%));
+}
+
+.player-prepare-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1.2;
+}
+
+.player-prepare-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.player-prepare-subtitle {
+  font-size: 10.5px;
+  font-weight: 450;
+  color: var(--text-secondary);
+}
+
+.player-prepare-spinner {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  border-radius: 50%;
+  border: 2px solid var(--accent-25, rgba(139, 92, 246, 0.25));
+  border-top-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow, transparent);
+}
+
+.player-prepare-chip.is-animated .player-prepare-spinner {
+  animation: player-prepare-spin 0.85s linear infinite;
+}
+
+@keyframes player-prepare-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-prepare-chip.is-animated .player-prepare-spinner {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   Aro de carga del botón de play — visible mientras isBuffering es
+   true, sea cual sea el motivo (blob resolviendo, IFrame arrancando,
+   pista externa cacheando). Antes el botón mostraba "Pausa" fijo sin
+   ningún indicador de que todavía no sonaba nada.
+   ============================================================ */
+.player-play-btn {
+  position: relative;
+}
+
+.player-play-btn-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.9);
+  border-right-color: rgba(255, 255, 255, 0.35);
+  animation: player-play-ring-spin 0.7s linear infinite;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .player-play-btn-ring {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+@keyframes player-play-ring-spin {
+  to { transform: rotate(360deg); }
+}
+

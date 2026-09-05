@@ -1,0 +1,1177 @@
+.settings-page {
+  min-height: 100dvh;
+  padding: calc(1.5rem + var(--page-top-inset)) clamp(1rem, 3vw, 2.5rem) calc(6rem + env(safe-area-inset-bottom));
+  background: radial-gradient(ellipse 100% 400px at 50% 0%, var(--accent-10), transparent);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+@media (min-width: 900px) {
+  .settings-page {
+    /* El Sidebar se descuenta con padding-left, pero el contenido ya NO
+       queda pegado a él a ancho completo: se limita a un bloque legible
+       (--settings-content-w) y se centra en el espacio que sobra, para
+       que en un monitor grande no quede media pantalla vacía a la
+       derecha — el mismo problema que tenía antes de este ajuste. */
+    --settings-content-w: min(660px, 100%);
+    max-width: none;
+    margin: 0;
+    padding-left: calc(240px + clamp(1.5rem, 4vw, 3rem));
+    padding-right: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .settings-header,
+  .settings-shell {
+    max-width: var(--settings-content-w);
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* A partir de acá entra el ancho real de escritorio: el riel de
+   categorías y el panel se ensanchan un poco más para ocupar el
+   monitor sin estirar cada fila individual más de lo legible. */
+@media (min-width: 1180px) {
+  .settings-page {
+    --settings-content-w: 1040px;
+  }
+}
+
+@media (max-width: 899px) {
+  .settings-page {
+    padding-bottom: calc(var(--page-bottom-clearance) + env(safe-area-inset-bottom));
+  }
+}
+
+.settings-header {
+  margin: 0.5rem 0 1.75rem;
+}
+
+/* ============================================================
+   Shell tipo Discord — riel de categorías a la izquierda, panel de
+   contenido a la derecha. En desktop conviven lado a lado y fijos;
+   por debajo de 900px, uno u otro (ver mobileShowingPanel en el
+   componente): el riel es la pantalla inicial de "Ajustes" y cada
+   categoría abre a pantalla completa con su propio volver. */
+.settings-shell {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.settings-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Buscador del riel — mismo patrón que "Search settings" de Spotify:
+   una lupa fija arriba de las categorías que filtra la lista en vivo,
+   sin navegar a ningún lado. Comparte el vidrio del riel en desktop en
+   vez de ser un input plano suelto encima. */
+.settings-rail-search {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  transition: border-color var(--dur-sm) var(--ease-out), background var(--dur-sm) var(--ease-out);
+}
+
+.settings-rail-search:focus-within {
+  border-color: var(--accent-40);
+  background: var(--surface-active);
+}
+
+.settings-rail-search-icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.settings-rail-search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.settings-rail-search input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.settings-rail-search input:focus {
+  outline: none;
+}
+
+.settings-rail-search-clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: var(--text-tertiary);
+  background: var(--surface-active);
+}
+
+.settings-rail-empty {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+.settings-rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.settings-rail-group-label {
+  margin: 0 0 0.35rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+}
+
+.settings-rail-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  /* El fondo/color ya no hacen la transición acá — la corre el pill
+     animado con layoutId (ver .settings-rail-item-pill). Se deja
+     `color` nomás para que el ícono/label sigan cambiando de tono
+     con una transición propia, más rápida que el desplazamiento. */
+  transition: color var(--dur-sm) var(--ease-out);
+}
+
+/* Chip de ícono con tinte fijo por categoría (--row-tint, seteado desde
+   SettingsPage.tsx) — la misma idea que los cuadraditos de color de
+   Ajustes de iOS: identifica la categoría por color de un vistazo,
+   independiente de qué acento de tema tenga elegido el usuario. */
+.settings-rail-item-icon-wrap {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--row-tint) 20%, transparent);
+  color: var(--row-tint);
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+
+.settings-rail-item.active .settings-rail-item-icon-wrap {
+  transform: scale(1.04);
+}
+
+.settings-rail-item-text {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.settings-rail-item-desc {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* En el riel angosto de desktop la descripción sobra — el nombre solo
+   ya alcanza y evita que las filas se vean apretadas contra el borde. */
+@media (min-width: 900px) {
+  .settings-rail-item-desc {
+    display: none;
+  }
+}
+
+/* Fondo activo — el elemento que motion desliza entre botones (layoutId
+   compartido en SettingsPage.tsx). Ocupa todo el botón por debajo del
+   ícono/label (z-index), con una barrita de acento a la izquierda que
+   viaja pegada al mismo pill en vez de ser un pseudo-elemento aparte. */
+.settings-rail-item-pill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent-dim);
+  box-shadow: inset 0 0 0 1px var(--accent-25, transparent);
+}
+
+.settings-rail-item-pill::before {
+  content: '';
+  position: absolute;
+  left: -0.15rem;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--accent-strong);
+}
+
+.settings-rail-item-icon,
+.settings-rail-item-label {
+  position: relative;
+  z-index: 1;
+}
+
+.settings-rail-item-chevron {
+  position: relative;
+  z-index: 1;
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-rail-item:not(.active):hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+  }
+}
+
+.settings-rail-item:active {
+  transform: scale(0.99);
+}
+
+.settings-rail-item.active {
+  color: var(--accent-strong);
+}
+
+/* En desktop el riel no navega a pantalla completa, así que el chevron
+   (que sugiere "esto abre otra pantalla") no aplica — la selección se
+   muestra con el fondo/color activo de arriba. */
+@media (min-width: 900px) {
+  .settings-rail-item-chevron {
+    display: none;
+  }
+}
+
+.settings-rail-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--danger);
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.settings-rail-logout:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.settings-rail-logout:active {
+  transform: scale(0.98);
+}
+
+.settings-content {
+  min-width: 0;
+  flex: 1;
+}
+
+/* Wrapper interno que crossfadea al cambiar de categoría (ver AnimatePresence
+   en SettingsPage.tsx) — sin esto el contenido de cada sección se cortaba
+   y aparecía de golpe. */
+.settings-panel-transition {
+  min-width: 0;
+}
+
+.settings-content-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+  padding: 0.4rem 0.1rem;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ============================================================
+   Header del panel — ícono con el mismo tinte de categoría que el
+   riel (--row-tint) + título y descripción de una línea, así el
+   contenido nunca arranca en seco con solo un <h2>. */
+.settings-content-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1.2rem;
+}
+
+.settings-content-header-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--row-tint) 20%, transparent);
+  color: var(--row-tint);
+}
+
+.settings-content-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.settings-content-desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+/* El botón de "Cerrar sesión" repetido dentro de Mi Cuenta solo hace
+   falta en mobile (ahí el riel y su logout de abajo pueden no estar a
+   la vista, según en qué categoría estés) — en desktop el riel ya lo
+   muestra siempre fijo, así que este segundo botón sobraría. */
+.settings-logout--mobile {
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .settings-logout--mobile {
+    display: none;
+  }
+
+  .settings-shell {
+    gap: 2.5rem;
+    align-items: flex-start;
+  }
+
+  .settings-rail {
+    position: sticky;
+    top: calc(1.5rem + var(--page-top-inset));
+    width: 230px;
+    /* Vidrio real (mismos tokens que la tab bar / mini-player) en vez del
+       fondo plano que tenía antes — en desktop el riel queda flotando
+       como su propio panel, coherente con el resto de la app en lugar de
+       ser la única superficie de XFY sin el lenguaje de "Liquid Glass". */
+    padding: 0.9rem;
+    border-radius: var(--radius-lg);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 24px 48px -28px rgba(0, 0, 0, 0.55);
+  }
+
+  .settings-content {
+    padding: 1.6rem 1.9rem 2.1rem;
+    border-radius: var(--radius-lg);
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      inset 0 1px 0 var(--glass-highlight),
+      0 24px 48px -28px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* ============================================================
+   Hero de perfil — el anillo del avatar usa el gradiente de acento
+   activo (var(--accent-strong) → var(--accent)), así perfil y tema
+   quedan conectados a simple vista: cambiar el tema abajo se nota
+   arriba al instante, en vez de ser dos cajas sin relación entre sí. */
+.settings-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 0.5rem 0.25rem 1.75rem;
+}
+
+.settings-hero-avatar-ring {
+  position: relative;
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  padding: 3px;
+  background: conic-gradient(from 180deg, var(--accent-strong), var(--accent), var(--accent-strong));
+  box-shadow: 0 0 0 6px var(--accent-08), 0 12px 30px -8px var(--accent-glow);
+  border: none;
+  cursor: default;
+  transition: transform var(--dur-md);
+}
+.settings-hero-avatar-ring--editable {
+  cursor: pointer;
+}
+/* :hover gateado a puntero real: en táctil, :hover se dispara al tocar
+   y el scale(1.03) queda "pegado" hasta tocar otro lado del layout. */
+@media (hover: hover) and (pointer: fine) {
+  .settings-hero-avatar-ring--editable:hover {
+    transform: scale(1.03);
+  }
+}
+.settings-hero-avatar-ring--editable:active {
+  transform: scale(0.97);
+}
+.settings-hero-avatar-edit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-strong);
+  color: #fff;
+  border: 2px solid var(--bg);
+}
+.settings-hero-avatar-spinner {
+  animation: settings-avatar-spin 0.8s linear infinite;
+}
+@keyframes settings-avatar-spin {
+  to { transform: rotate(360deg); }
+}
+.settings-hero-avatar-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.settings-hero-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--bg);
+}
+
+.settings-hero-fields {
+  min-width: 0;
+  flex: 1;
+}
+
+.settings-hero-name {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 0.1rem 0 0.3rem;
+  color: var(--text-primary);
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  /* 16px mínimo real (clamp de abajo nunca baja de eso): por debajo,
+     Safari en iOS hace zoom automático al tocar el campo. */
+  transition: border-color var(--dur-sm) var(--ease-out);
+}
+
+.settings-hero-name:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.settings-hero-email {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-tertiary);
+}
+
+@media (min-width: 900px) {
+  /* Con más aire alrededor, el hero puede respirar en vez de quedar al
+     mismo tamaño compacto pensado para una pantalla de teléfono. */
+  .settings-hero {
+    gap: 1.4rem;
+    padding: 0.75rem 0.25rem 2.25rem;
+  }
+  .settings-hero-avatar-ring {
+    width: 92px;
+    height: 92px;
+  }
+  .settings-hero-name {
+    font-size: 1.65rem;
+  }
+  .settings-hero-email {
+    font-size: 0.88rem;
+  }
+}
+
+/* ============================================================
+   Etiqueta de grupo — mismo patrón que iOS Settings / Apple Music:
+   un rótulo chico en mayúsculas antes de cada lista, en vez de un
+   <h2> del mismo peso visual que el resto del texto de la página. */
+.settings-group-label {
+  margin: 0 0 0.5rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+}
+
+.settings-group + .settings-group-label {
+  margin-top: 1.75rem;
+}
+
+/* ============================================================
+   Grupo — UNA superficie continua con filas separadas por líneas
+   finas, no una caja distinta por cada dato. Es lo que hace que la
+   sección de Almacenamiento se lea como una lista real (Ajustes de
+   iOS, Apple Music) en vez de tarjetas sueltas apiladas sin relación. */
+.settings-group {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* Franja de acento en el borde superior — la misma firma visual que el
+   "lomo" de la tarjeta de login, para que Ajustes se sienta parte de la
+   misma familia en vez de una pantalla aparte. */
+.settings-group::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-40), transparent);
+}
+
+.settings-divider {
+  height: 1px;
+  margin: 0 1.1rem;
+  background-image: repeating-linear-gradient(90deg, var(--border) 0 4px, transparent 4px 8px);
+}
+
+.settings-row-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.95rem 1.1rem;
+}
+
+.settings-row-item--compact {
+  padding: 0.6rem 1.1rem;
+}
+
+.settings-row-item--action {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.settings-row-item--theme {
+  padding-bottom: 0.5rem;
+}
+
+.settings-row-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* --row-tint viene del <section> de cada categoría (ver SettingsPage.tsx);
+     si no está seteado (p. ej. dentro de "Mi cuenta"), cae al acento del
+     tema como antes. */
+  background: color-mix(in srgb, var(--row-tint, var(--accent)) 16%, transparent);
+  color: var(--row-tint, var(--accent-strong));
+}
+
+.settings-row-icon--sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: var(--surface-hover);
+  color: var(--text-tertiary);
+}
+
+.settings-row-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.settings-row-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.settings-row-title--sm {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.settings-row-desc {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.settings-row-stat {
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-row-stat--sm {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.settings-row-stat-max {
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+/* ============================================================
+   Toggle */
+.settings-toggle {
+  flex-shrink: 0;
+  width: 46px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  position: relative;
+  transition:
+    background var(--dur-sm) var(--ease-out),
+    border-color var(--dur-sm) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.settings-toggle:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-toggle:hover {
+    border-color: var(--accent-40);
+  }
+  .settings-toggle.on:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.settings-toggle.on {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.settings-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--dur-sm) var(--ease-out);
+}
+
+.settings-toggle.on .settings-toggle-knob {
+  transform: translateX(18px);
+}
+
+/* ============================================================
+   Selector de acento — swatches grandes con glow propio y check al
+   quedar seleccionado, el mismo lenguaje que el selector de color de
+   acento de macOS/iOS en vez de una fila de píldoras con texto chico. */
+.settings-theme-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  padding: 0 1.1rem 1.1rem;
+}
+
+.settings-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  /* El círculo grande muestra el fondo del tema; el punto de --swatch
+     (ver ::after) muestra el acento, así se distingue de un vistazo un
+     tema oscuro de uno claro sin abrirlo. */
+  background: var(--swatch-bg, var(--swatch));
+  border: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--swatch) 55%, transparent);
+  transition:
+    transform var(--dur-press) var(--ease-out),
+    box-shadow var(--dur-sm) var(--ease-out),
+    border-color var(--dur-sm) var(--ease-out);
+}
+
+.settings-swatch::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--swatch);
+  border: 2px solid var(--bg-elevated);
+}
+
+.settings-swatch:active {
+  transform: scale(0.9);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-swatch:hover {
+    transform: scale(1.08);
+  }
+  .settings-swatch.active:hover {
+    transform: scale(1.08);
+  }
+}
+
+.settings-swatch.active {
+  border-color: var(--bg);
+  box-shadow:
+    0 0 0 2px var(--swatch),
+    0 6px 18px -2px color-mix(in srgb, var(--swatch) 65%, transparent);
+}
+
+/* ============================================================
+   Claridad del vidrio — filas seleccionables con un pequeño swatch de
+   vidrio real (mismo blur/highlight que el resto de la app) para que se
+   note la diferencia de opacidad de un vistazo, no solo por el texto. */
+.settings-glass-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1.1rem 1.1rem;
+}
+
+.settings-glass-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-primary);
+  text-align: left;
+  transition:
+    border-color var(--dur-sm) var(--ease-out),
+    background var(--dur-sm) var(--ease-out),
+    transform var(--dur-press) var(--ease-out);
+}
+
+.settings-glass-option:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .settings-glass-option:hover {
+    background: var(--surface-hover);
+  }
+}
+
+.settings-glass-option.active {
+  border-color: var(--accent-40);
+  background: var(--accent-08);
+  color: var(--accent-strong);
+}
+
+.settings-glass-option-swatch {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  /* Cada opción previsualiza SU propia densidad de vidrio, calculada
+     igual que --glass-bg en tokens.css pero con el multiplicador fijo de
+     esa opción en vez de --glass-clarity — así se ve la diferencia real
+     entre Claro/Equilibrado/Tintado sin depender de cuál esté activa. */
+  background: rgba(16, 15, 22, 0.66);
+}
+
+.settings-glass-option--clear .settings-glass-option-swatch {
+  background: rgba(16, 15, 22, 0.46);
+}
+
+.settings-glass-option--tinted .settings-glass-option-swatch {
+  background: rgba(16, 15, 22, 0.95);
+}
+
+.settings-glass-option-text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.settings-glass-option-label {
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.settings-glass-option-desc {
+  font-size: 0.76rem;
+  color: var(--text-tertiary);
+}
+
+.settings-glass-option.active .settings-glass-option-desc {
+  color: color-mix(in srgb, var(--accent-strong) 70%, var(--text-tertiary));
+}
+
+/* ============================================================
+   Temas personalizados — fila compacta por tema: dot de color +
+   nombre + eliminar, mismo patrón de fila que el resto de la lista
+   en vez de reusar los swatches circulares grandes de arriba. */
+.settings-custom-theme-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem 0.6rem;
+}
+
+.settings-custom-theme-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.5rem;
+  border-radius: var(--radius-md);
+  transition: background var(--dur-sm) var(--ease-out);
+}
+
+.settings-custom-theme-item.active {
+  background: var(--accent-08, var(--surface-hover));
+}
+
+.settings-custom-theme-dot {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--swatch-bg, var(--swatch));
+  border: 2px solid var(--swatch);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.settings-custom-theme-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-custom-theme-delete {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  transition: background var(--dur-sm) var(--ease-out), color var(--dur-sm) var(--ease-out);
+}
+
+.settings-custom-theme-delete:hover {
+  background: rgba(248, 113, 113, 0.1);
+  color: var(--danger);
+}
+
+/* ============================================================
+   Creador de temas personalizados — colapsado detrás de un botón
+   chico (misma idea que "Nueva playlist"), así no le agrega peso
+   visual permanente a la sección de Apariencia. */
+.settings-theme-creator-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--accent-strong);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.settings-theme-creator-toggle:hover {
+  background: var(--accent-08, var(--surface-hover));
+}
+
+.settings-theme-creator-toggle:active {
+  transform: scale(0.96);
+}
+
+.settings-theme-creator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 0.2rem 1.1rem 1.1rem;
+}
+
+.settings-theme-creator-name {
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.settings-theme-creator-name:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.settings-theme-creator-colors {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+}
+
+.settings-theme-creator-color {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.settings-theme-creator-color input[type='color'] {
+  width: 100%;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
+.settings-theme-creator-save {
+  align-self: flex-start;
+  padding: 0.55rem 1.1rem;
+  border-radius: var(--radius-full);
+  border: none;
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: transform var(--dur-press) var(--ease-out), filter var(--dur-sm) var(--ease-out);
+}
+
+.settings-theme-creator-save:hover {
+  filter: brightness(1.06);
+}
+
+.settings-theme-creator-save:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 420px) {
+  .settings-theme-creator-colors {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================================
+   Scrobbling (Last.fm / ListenBrainz) — mismos tokens visuales que el
+   creador de temas de arriba, para no inventar un segundo lenguaje de
+   formularios en la misma pantalla. */
+.settings-scrobble-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0 1.1rem 1.1rem;
+}
+
+.settings-scrobble-input {
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+
+.settings-scrobble-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.settings-scrobble-save {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: transform var(--dur-press) var(--ease-out), filter var(--dur-sm) var(--ease-out);
+}
+
+.settings-scrobble-save:hover {
+  filter: brightness(1.1);
+}
+
+.settings-scrobble-save:active {
+  transform: scale(0.96);
+}
+
+.settings-scrobble-toggle-link {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+/* ============================================================
+   Barra de uso de caché de audio */
+.settings-cache-bar {
+  height: 5px;
+  margin: 0 1.1rem 0.9rem;
+  border-radius: var(--radius-full);
+  background: var(--surface-hover);
+  overflow: hidden;
+}
+
+.settings-cache-bar-fill {
+  height: 100%;
+  /* scaleX en vez de width: mismo truco que el progreso del reproductor —
+     transform es compositado, width dispara layout en cada frame. */
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  border-radius: var(--radius-full);
+  transform-origin: left;
+  transition: transform var(--dur-md) var(--ease-out);
+}
+
+.settings-cache-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--danger);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.settings-cache-clear:hover {
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.settings-cache-clear:active {
+  transform: scale(0.96);
+}
+
+/* ============================================================
+   Cerrar sesión — fila de peligro centrada, mismo patrón que la
+   fila "Cerrar sesión" de Ajustes de iOS: vive dentro del flujo de
+   la lista, no como un botón flotante aparte con su propio peso. */
+.settings-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 1.75rem;
+  padding: 0.9rem 1.3rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--danger);
+  font-weight: 700;
+  font-size: 0.92rem;
+  transition: background var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.settings-logout:hover {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.settings-logout:active {
+  transform: scale(0.98);
+}
+
+@media (max-width: 360px) {
+  .settings-hero {
+    gap: 0.85rem;
+  }
+  .settings-hero-avatar-ring {
+    width: 64px;
+    height: 64px;
+  }
+  .settings-hero-name {
+    font-size: 1.15rem;
+  }
+}

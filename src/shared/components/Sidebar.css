@@ -1,0 +1,176 @@
+.sidebar {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-w);
+    padding: 1.5rem 1rem;
+    background: rgba(10, 10, 15, 0.6);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-right: 1px solid var(--border);
+    /* Filo de luz vertical en el borde derecho — el mismo lenguaje de
+       "vidrio" que ahora tiene la tab bar/mini-player en móvil, para
+       que escritorio y móvil se sientan como la misma app. */
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+    z-index: 15;
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .sidebar {
+      background: var(--bg-elevated);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  }
+
+  /* PWA de escritorio con Window Controls Overlay: el logo arranca justo
+     debajo de la franja arrastrable del titlebar nativo (ver
+     useWindowControlsOverlay.ts + .app-titlebar-drag en App.css), en vez
+     de quedar pegado contra ella. */
+  html.pwa-wco .sidebar {
+    padding-top: calc(1.5rem + var(--wco-height, 33px));
+  }
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  padding: 0 0.6rem;
+  margin-bottom: 2rem;
+}
+
+.sidebar-brand img {
+  height: 20px;
+  width: auto;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sidebar-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0.65rem 0.6rem;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  transition: background var(--dur-sm) var(--ease-out), color var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.sidebar-nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-nav-item:active {
+  transform: scale(0.98);
+}
+
+.sidebar-nav-item.active {
+  color: var(--text-primary);
+  background: var(--surface-active);
+}
+
+/* Barrita de acento a la izquierda del ítem activo — ahora es un
+   motion.span con layoutId (ver Sidebar.jsx) que desliza y se asienta
+   con spring al cambiar de sección, en vez de aparecer de golpe. */
+.sidebar-active-bar {
+  position: absolute;
+  left: -1rem;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  border-radius: var(--radius-full);
+  background: var(--accent-strong);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+.sidebar-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sidebar-user {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--dur-sm) var(--ease-out);
+}
+
+.sidebar-user:hover {
+  background: var(--surface-hover);
+}
+
+.sidebar-user img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sidebar-user span {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-logout {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background var(--dur-sm) var(--ease-out), color var(--dur-sm) var(--ease-out), transform var(--dur-press) var(--ease-out);
+}
+
+.sidebar-logout:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-logout:active {
+  transform: scale(0.9);
+}

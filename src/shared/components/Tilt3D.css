@@ -1,0 +1,25 @@
+.tilt3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+.tilt3d--static {
+  width: 100%;
+  height: 100%;
+}
+
+.tilt3d-glare {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tilt3d:hover .tilt3d-glare {
+  opacity: 1;
+}

@@ -1,0 +1,169 @@
+.mini-player-bar {
+  position: fixed;
+  left: var(--tabbar-gap);
+  right: var(--tabbar-gap);
+  /* Este offset es: su margen contra el borde real (--tabbar-bottom-gap)
+     + su altura + el hueco entre ambas píldoras (--tabbar-gap) — así
+     quedan apiladas, cada hueco con su propio número en vez de reusar
+     uno solo para dos distancias distintas (ver el comentario grande
+     en tokens.css sobre por qué se separaron). */
+  bottom: calc(var(--tabbar-h) + var(--tabbar-gap) + var(--tabbar-bottom-gap) + env(safe-area-inset-bottom));
+  z-index: 24;
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-lg);
+  isolation: isolate;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 var(--glass-highlight);
+  cursor: grab;
+  overflow: hidden;
+  transition: transform var(--dur-sm) var(--ease-out);
+  /* Superficie gestual (drag libre x/y de motion): sin touch-action none
+     el browser se apropia del gesto y dispara pointercancel; sin
+     user-select, un drag con mouse selecciona texto. */
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.mini-player-bar:active {
+  cursor: grabbing;
+}
+
+/* Lift al agarrar: sombra más profunda y un pelín más de brillo superior —
+   la barra "se levanta" de la pila de UI mientras la arrastrás. Va por
+   data-attr (no por :active) para que dure TODO el gesto, no solo el
+   frame del press. */
+.mini-player-bar[data-grabbing] {
+  box-shadow:
+    0 26px 60px -12px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 var(--glass-highlight);
+  transition: box-shadow 150ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mini-player-bar:hover {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .mini-player-bar {
+    background: var(--bg-elevated);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (min-width: 900px) {
+  .mini-player-bar {
+    left: calc(240px + 1rem);
+    right: 1rem;
+    /* En escritorio no hay tab bar debajo — vuelve a pegarse al borde. */
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+.mini-player-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent-strong);
+  transform-origin: left;
+  transition: transform 200ms linear;
+}
+
+.mini-player-art {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.mini-player-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.mini-player-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-player-artist {
+  margin: 0.1rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-player-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.mini-player-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--dur-press) var(--ease-out), background var(--dur-sm) var(--ease-out);
+}
+
+.mini-player-icon-btn:active {
+  transform: scale(0.9);
+}
+
+.mini-player-icon-btn.primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.mini-player-heart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Misma barra achicada que la tab bar en landscape móvil — el mini-
+   player flota justo encima, así que si uno se achica y el otro no,
+   quedan desalineados y se ve como un error de diseño en vez de un
+   ajuste a propósito. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .mini-player-bar {
+    padding: 0.4rem 0.7rem;
+    gap: 0.6rem;
+  }
+  .mini-player-art {
+    width: 32px;
+    height: 32px;
+  }
+  .mini-player-icon-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
