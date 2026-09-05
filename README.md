@@ -11,17 +11,10 @@ seguras y continuidad entre dispositivos.
 
 <br>
 
-<!--
-  Reemplazá estos paths por tus propias imágenes:
-    docs/screenshots/desktop.png
-    docs/screenshots/mobile.png
--->
-
 <p align="center">
-  <img src="docs/screenshots/desktop.png" alt="XFY en escritorio" width="78%">
-</p>
-<p align="center">
-  <img src="docs/screenshots/mobile.png" alt="XFY en móvil" width="24%">
+  <img src="docs/screenshots/desktop.png" alt="XFY en escritorio" width="56%">
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/mobile.png" alt="XFY en móvil" width="17%">
 </p>
 
 <br>
