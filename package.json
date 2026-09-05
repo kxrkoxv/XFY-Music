@@ -20,7 +20,7 @@
     "@kawarp/core": "^1.2.0",
     "@neondatabase/serverless": "^1.0.1",
     "@simplewebauthn/browser": "^13.3.0",
-    "@simplewebauthn/server": "^13.3.3",
+    "@simplewebauthn/server": "^14.0.0",
     "@use-gesture/react": "^10.3.1",
     "@vercel/blob": "^2.8.0",
     "@vercel/functions": "^3.9.5",
