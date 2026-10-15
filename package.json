@@ -56,7 +56,7 @@
     "@types/web-push": "^3.6.4",
     "@vercel/node": "^7.0.0",
     "@vitejs/plugin-react": "^6.0.4",
-    "jsdom": "26.1.0",
+    "jsdom": "30.0.1",
     "oxlint": "^1.75.0",
     "typescript": "7.0.2",
     "vite": "^8.2.0",
